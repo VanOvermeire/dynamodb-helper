@@ -1,0 +1,10 @@
+[package]
+name = "dynamodb-helper-main"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+dynamodb-helper = { path = "./dynamodb-helper" }
+aws-config = "0.47.0"
+aws-sdk-dynamodb = "0.17.0"
+tokio = { version = "1", features = ["full"] }
