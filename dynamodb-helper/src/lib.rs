@@ -11,31 +11,30 @@ use syn::Meta::NameValue;
 use syn::MetaNameValue;
 use syn::Lit;
 
-#[proc_macro_derive(DynamoDb, attributes(table,fake))]
+// let mut table = "".to_string();
+//
+// for option in ast.attrs.into_iter() {
+// let ident = &option.path.segments.first().unwrap().ident;
+//
+// if ident == "table" {
+// let option = option.parse_meta().unwrap();
+// match option {
+// NameValue(MetaNameValue{ref lit, ..}) => {
+// if let Lit::Str(lit) = lit {
+// table = lit.value();
+// }
+// },
+// _ =>
+// }
+// }
+// }
+
+
+#[proc_macro_derive(DynamoDb, attributes(table))]
 pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(item as DeriveInput);
 
-    let mut table = "".to_string();
-
     // eprintln!("{:?}", ast.attrs);
-
-    // TODO return string and if not present, 'expect'
-    for option in ast.attrs.into_iter() {
-        let ident = &option.path.segments.first().unwrap().ident;
-
-        if ident == "table" {
-            let option = option.parse_meta().unwrap();
-            match option {
-                NameValue(MetaNameValue{ref lit, ..}) => {
-                    if let Lit::Str(lit) = lit {
-                        table = lit.value();
-                    }
-                },
-                _ => todo!()
-            }
-        }
-    }
-
 
     let name = ast.ident;
     let helper_name = format!("{}Db", name);
@@ -79,23 +78,23 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
         }
 
         impl #helper_ident {
-            fn new(client: aws_sdk_dynamodb::Client, table: String) -> Self {
+            fn new(client: aws_sdk_dynamodb::Client, table: &str) -> Self {
                 #helper_ident {
                     client,
-                    table
+                    table: table.to_string()
                 }
             }
 
-            pub async fn build(region: aws_sdk_dynamodb::Region) -> Self {
+            pub async fn build(region: aws_sdk_dynamodb::Region, table: &str) -> Self {
                 let region_provider = aws_config::meta::region::RegionProviderChain::first_try(region).or_default_provider();
                 let shared_config = aws_config::from_env().region(region_provider).load().await;
                 #helper_ident {
                     client: aws_sdk_dynamodb::Client::new(&shared_config),
-                    table: #table.to_string(),
+                    table: table.to_string(),
                 }
             }
 
-            pub async fn put(&self, input: #name) -> Result<PutItemOutput, SdkError<PutItemError>> {
+            pub async fn put(&self, input: #name) -> Result<aws_sdk_dynamodb::output::PutItemOutput, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::PutItemError>> {
                 // println!("Putting stuff");
                 // let temp: std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue> = input.into();
                 self.client.put_item()

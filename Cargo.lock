@@ -387,6 +387,7 @@ dependencies = [
  "aws-config",
  "aws-sdk-dynamodb",
  "dynamodb-helper",
+ "http",
  "tokio",
 ]
 

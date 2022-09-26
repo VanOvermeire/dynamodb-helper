@@ -1,3 +1,5 @@
+use aws_config::SdkConfig;
+use aws_sdk_dynamodb::Client;
 use aws_sdk_dynamodb::error::PutItemError;
 use aws_sdk_dynamodb::output::PutItemOutput;
 use aws_sdk_dynamodb::types::SdkError;
@@ -118,7 +120,7 @@ mod tests {
     #[tokio::test]
     async fn should_generate_a_helper_struct() {
         let e = ExampleStruct { partition_key: "example".to_string() };
-        let help = ExampleStructDb::build(aws_sdk_dynamodb::Region::new("eu-west-1")).await;
-        help.put(e);
+        let help = ExampleStructDb::build(aws_sdk_dynamodb::Region::new("eu-west-1"), "exampleTable").await;
+        // help.put(e);
     }
 }
