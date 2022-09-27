@@ -2,7 +2,8 @@ extern crate core;
 
 use quote::quote;
 use proc_macro::{TokenStream};
-use syn::{parse_macro_input, DeriveInput};
+use std::iter::Map;
+use syn::{parse_macro_input, DeriveInput, Field};
 use syn::Data::Struct;
 use syn::DataStruct;
 use syn::Fields::Named;
@@ -10,6 +11,8 @@ use syn::FieldsNamed;
 use syn::Meta::NameValue;
 use syn::MetaNameValue;
 use syn::Lit;
+use syn::punctuated::{Iter, Punctuated};
+use syn::token::Comma;
 
 // let mut table = "".to_string();
 //
@@ -30,12 +33,20 @@ use syn::Lit;
 // }
 
 
-#[proc_macro_derive(DynamoDb, attributes(table))]
+// eprintln!("Something {:?}", fields);
+
+fn get_attribute<'a>(f: &'a syn::Field, name: &'a str) -> Option<&'a syn::Attribute> {
+    for attr in &f.attrs {
+        if attr.path.segments.len() == 1 && attr.path.segments[0].ident == name.to_string() {
+            return Some(attr);
+        }
+    }
+    None
+}
+
+#[proc_macro_derive(DynamoDb, attributes(partition))]
 pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(item as DeriveInput);
-
-    // eprintln!("{:?}", ast.attrs);
-
     let name = ast.ident;
     let helper_name = format!("{}Db", name);
     let helper_ident = syn::Ident::new(&helper_name, name.span());
@@ -45,8 +56,17 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
         _ => unimplemented!("Only works for structs"),
     };
 
-    // eprintln!("Something {:?}", fields);
+    let partition_key_ident_and_type = fields.iter()
+        .filter(|f| get_attribute(f, "partition").is_some())
+        .map(|f| (f.ident.as_ref().unwrap(), &f.ty))
+        .next()
+        .expect("Partition key should be defined (with attribute #[partition])");
+    let partition_key_name = partition_key_ident_and_type.0.to_string();
+    let partition_key_type = partition_key_ident_and_type.1;
 
+    eprintln!("{:?}", partition_key_ident_and_type);
+
+    // TODO moving this into separate function not working? (not the right signature I guess)
     let hashmap_inserts = fields.iter().map(|f| {
         let name = &f.ident.as_ref().unwrap();
         let name_as_string = name.to_string();
@@ -57,12 +77,6 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
         }
     });
 
-
-    // TODO:
-    //  valid put to dynamo
-    //  valid get from dynamo
-    //  valid delete
-    //  later options to configure id etc.
     let public_version = quote! {
         impl Into<std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>> for #name {
             fn into(self) -> std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue> {
@@ -103,8 +117,18 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
                     .send()
                     .await
             }
+
+            // TODO we could transform get item output into something useful
+            pub async fn get(&self, key: #partition_key_type) -> Result<aws_sdk_dynamodb::output::GetItemOutput, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::GetItemError>> {
+                self.client.get_item()
+                    .table_name(&self.table)
+                    .key(#partition_key_name, AttributeValue::S(key))
+                    .send()
+                    .await
+            }
         }
     };
 
     public_version.into()
 }
+
