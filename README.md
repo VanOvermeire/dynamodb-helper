@@ -10,7 +10,6 @@ Also see the unit and integration tests.
 
 ## TODO
 
-- support range keys
 - support all values
 - get for complex key with only partition key
 - delete call
