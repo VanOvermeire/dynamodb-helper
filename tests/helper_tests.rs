@@ -1,10 +1,6 @@
-use std::any::Any;
 use std::collections::HashMap;
-use std::error;
-use aws_config::SdkConfig;
-use aws_sdk_dynamodb::{Client, Endpoint, Region};
+use aws_sdk_dynamodb::{Client, Endpoint};
 use aws_sdk_dynamodb::model::{AttributeDefinition, AttributeValue, KeySchemaElement, KeyType, ProvisionedThroughput, ScalarAttributeType};
-use aws_sdk_dynamodb::types::SdkError;
 use dynamodb_helper::DynamoDb;
 use http::Uri;
 
@@ -55,11 +51,15 @@ async fn should_be_able_to_get_from_dynamo() {
         .await
         .expect("To be able to put");
 
-    let result = db.get("uid1234".to_string())
+    let result_option = db.get("uid1234".to_string())
         .await
         .expect("To be able to get a result");
 
     destroy_table(&client, get_table).await;
+
+    assert!(result_option.is_some());
+
+    let result = result_option.unwrap();
 
     assert_eq!(result.an_id, "uid1234");
     assert_eq!(result.name, "Me");
@@ -96,11 +96,15 @@ async fn should_be_able_to_get_from_dynamo_with_range_key() {
         .await
         .expect("To be able to put");
 
-    let result = db.get(example.an_id.to_string(), example.a_range)
+    let result_option = db.get(example.an_id.to_string(), example.a_range)
         .await
         .expect("To be able to get a result");
 
     destroy_table(&client, get_table).await;
+
+    assert!(result_option.is_some());
+
+    let result = result_option.unwrap();
 
     assert_eq!(result.an_id, "uid123");
     assert_eq!(result.a_range, 1000);

@@ -98,6 +98,8 @@ fn put_method(struct_name: &Ident) -> proc_macro2::TokenStream {
 fn get_method(struct_name: &Ident, partition_key_ident_and_type: (&Ident, &Type), range_key_ident_and_type: Option<(&Ident, &Type)>) -> proc_macro2::TokenStream {
     let partition_key_name = partition_key_ident_and_type.0.to_string();
     let partition_key_type = partition_key_ident_and_type.1;
+
+    // TODO should be able to move this type of logic somewhere eventually - but be careful with the name
     let partition_key_attribute_value = if matches_any_type(partition_key_type, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
         quote! {
             AttributeValue::N(partition.to_string())
@@ -122,28 +124,25 @@ fn get_method(struct_name: &Ident, partition_key_ident_and_type: (&Ident, &Type)
         };
 
         quote! {
-            pub async fn get(&self, partition: #partition_key_type, range: #range_key_type) -> Result<#struct_name, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::GetItemError>> {
+            pub async fn get(&self, partition: #partition_key_type, range: #range_key_type) -> Result<Option<#struct_name>, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::GetItemError>> {
                 let result = self.client.get_item()
                     .table_name(&self.table)
                     .key(#partition_key_name, #partition_key_attribute_value)
                     .key(#range_key_name, #range_key_attribute_value)
                     .send()
                     .await?;
-
-                let mappie = result.item.expect("Just temp"); // TODO transform into error
-                Ok(mappie.into())
+                Ok(result.item.map(|v| v.into()))
             }
         }
     } else {
         quote! {
-            pub async fn get(&self, partition: #partition_key_type) -> Result<#struct_name, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::GetItemError>> {
+            pub async fn get(&self, partition: #partition_key_type) -> Result<Option<#struct_name>, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::GetItemError>> {
                 let result = self.client.get_item()
                     .table_name(&self.table)
                     .key(#partition_key_name, #partition_key_attribute_value)
                     .send()
                     .await?;
-                let mappie = result.item.expect("Just temp"); // TODO transform into error
-                Ok(mappie.into())
+                Ok(result.item.map(|v| v.into()))
             }
         }
     }
@@ -181,6 +180,7 @@ fn build_from_struct_for_hashmap(struct_name: &Ident, fields: &Punctuated<Field,
         let (name, name_as_string, field_type) = get_relevant_field_info(f);
 
         // TODO handle other types like booleans
+        //  maybe matches returns an enum that we can 'match' on
         if matches_any_type(field_type, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
             quote! {
                 map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::N(input.#name.to_string()));
