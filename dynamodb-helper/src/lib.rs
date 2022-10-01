@@ -31,6 +31,73 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
     };
 
     let partition_key_ident_and_type = get_ident_and_type_of_field_annotated_with(fields, "partition").expect("Partition key should be defined (with attribute #[partition])");
+    let range_key_ident_and_type = get_ident_and_type_of_field_annotated_with(fields, "range");
+
+    let from_struct_for_hashmap = build_from_struct_for_hashmap(&name, fields);
+    let from_hashmap_for_struct = build_from_hashmap_for_struct(&name, fields);
+
+    let new = new_method(&helper_ident);
+    let build = build_method(&helper_ident);
+    let get = get_method(&name, partition_key_ident_and_type, range_key_ident_and_type);
+    let put = put_method(&name);
+
+    let public_version = quote! {
+        #from_struct_for_hashmap
+        #from_hashmap_for_struct
+
+        pub struct #helper_ident {
+            client: aws_sdk_dynamodb::Client,
+            table: String,
+        }
+
+        impl #helper_ident {
+            #new
+            #build
+            #put
+            #get
+        }
+    };
+
+    public_version.into()
+}
+
+fn new_method(helper_ident: &Ident) -> proc_macro2::TokenStream {
+    quote! {
+        fn new(client: aws_sdk_dynamodb::Client, table: &str) -> Self {
+            #helper_ident {
+                client,
+                table: table.to_string()
+            }
+        }
+    }
+}
+
+fn build_method(helper_ident: &Ident) -> proc_macro2::TokenStream {
+    quote! {
+        pub async fn build(region: aws_sdk_dynamodb::Region, table: &str) -> Self {
+            let region_provider = aws_config::meta::region::RegionProviderChain::first_try(region).or_default_provider();
+            let shared_config = aws_config::from_env().region(region_provider).load().await;
+            #helper_ident {
+                client: aws_sdk_dynamodb::Client::new(&shared_config),
+                table: table.to_string(),
+            }
+        }
+    }
+}
+
+fn put_method(struct_name: &Ident) -> proc_macro2::TokenStream {
+    quote! {
+        pub async fn put(&self, input: #struct_name) -> Result<aws_sdk_dynamodb::output::PutItemOutput, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::PutItemError>> {
+            self.client.put_item()
+                .table_name(self.table.to_string())
+                .set_item(Some(input.into()))
+                .send()
+                .await
+        }
+    }
+}
+
+fn get_method(struct_name: &Ident, partition_key_ident_and_type: (&Ident, &Type), range_key_ident_and_type: Option<(&Ident, &Type)>) -> proc_macro2::TokenStream {
     let partition_key_name = partition_key_ident_and_type.0.to_string();
     let partition_key_type = partition_key_ident_and_type.1;
     let partition_key_attribute_value = if matches_any_type(partition_key_type, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
@@ -43,12 +110,7 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
         }
     };
 
-    let range_key_ident_and_type = get_ident_and_type_of_field_annotated_with(fields, "range");
-
-    let from_struct_for_hashmap = build_from_struct_for_hashmap(&name, fields);
-    let from_hashmap_for_struct = build_from_hashmap_for_struct(&name, fields);
-
-    let get = if let Some(range) = range_key_ident_and_type {
+    if let Some(range) = range_key_ident_and_type {
         let range_key_name = range.0.to_string();
         let range_key_type = range.1;
         let range_key_attribute_value = if matches_any_type(range_key_type, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
@@ -62,7 +124,7 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
         };
 
         quote! {
-            pub async fn get(&self, partition: #partition_key_type, range: #range_key_type) -> Result<#name, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::GetItemError>> {
+            pub async fn get(&self, partition: #partition_key_type, range: #range_key_type) -> Result<#struct_name, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::GetItemError>> {
                 let result = self.client.get_item()
                     .table_name(&self.table)
                     .key(#partition_key_name, #partition_key_attribute_value)
@@ -76,7 +138,7 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
         }
     } else {
         quote! {
-            pub async fn get(&self, partition: #partition_key_type) -> Result<#name, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::GetItemError>> {
+            pub async fn get(&self, partition: #partition_key_type) -> Result<#struct_name, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::GetItemError>> {
                 let result = self.client.get_item()
                     .table_name(&self.table)
                     .key(#partition_key_name, #partition_key_attribute_value)
@@ -86,47 +148,7 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
                 Ok(mappie.into())
             }
         }
-    };
-
-    let public_version = quote! {
-        #from_struct_for_hashmap
-        #from_hashmap_for_struct
-
-        pub struct #helper_ident {
-            client: aws_sdk_dynamodb::Client,
-            table: String,
-        }
-
-        impl #helper_ident {
-            fn new(client: aws_sdk_dynamodb::Client, table: &str) -> Self {
-                #helper_ident {
-                    client,
-                    table: table.to_string()
-                }
-            }
-
-            pub async fn build(region: aws_sdk_dynamodb::Region, table: &str) -> Self {
-                let region_provider = aws_config::meta::region::RegionProviderChain::first_try(region).or_default_provider();
-                let shared_config = aws_config::from_env().region(region_provider).load().await;
-                #helper_ident {
-                    client: aws_sdk_dynamodb::Client::new(&shared_config),
-                    table: table.to_string(),
-                }
-            }
-
-            pub async fn put(&self, input: #name) -> Result<aws_sdk_dynamodb::output::PutItemOutput, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::PutItemError>> {
-                self.client.put_item()
-                    .table_name(self.table.to_string())
-                    .set_item(Some(input.into()))
-                    .send()
-                    .await
-            }
-
-            #get
-        }
-    };
-
-    public_version.into()
+    }
 }
 
 fn build_from_hashmap_for_struct(struct_name: &Ident, fields: &Punctuated<Field, Comma>) -> proc_macro2::TokenStream {
