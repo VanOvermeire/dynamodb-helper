@@ -2,6 +2,7 @@ extern crate core;
 
 use quote::quote;
 use proc_macro::{TokenStream};
+use std::collections::HashMap;
 use std::iter::Map;
 use quote::__private::Ident;
 use syn::{parse_macro_input, DeriveInput, Field, Type};
@@ -17,7 +18,7 @@ use syn::token::Comma;
 
 const ALL_NUMERIC_TYPES_AS_STRINGS: &'static [&'static str] = &["u8", "u16", "u32", "u64", "u128", "i8", "i16", "i32", "i64", "i128", "f32", "f64"];
 
-#[proc_macro_derive(DynamoDb, attributes(partition))]
+#[proc_macro_derive(DynamoDb, attributes(partition,range))]
 pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(item as DeriveInput);
     let name = ast.ident;
@@ -29,15 +30,20 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
         _ => unimplemented!("Only works for structs"),
     };
 
-    let partition_key_ident_and_type = fields.iter()
-        .filter(|f| get_attribute(f, "partition").is_some())
-        .map(|f| (f.ident.as_ref().unwrap(), &f.ty))
-        .next()
-        .expect("Partition key should be defined (with attribute #[partition])");
+    let partition_key_ident_and_type = get_ident_and_type_of_field_annotated_with(fields, "partition").expect("Partition key should be defined (with attribute #[partition])");
     let partition_key_name = partition_key_ident_and_type.0.to_string();
     let partition_key_type = partition_key_ident_and_type.1;
+    let partition_key_attribute_value = if matches_any_type(partition_key_type, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
+        quote! {
+            AttributeValue::N(partition.to_string())
+        }
+    } else {
+        quote! {
+            AttributeValue::S(partition)
+        }
+    };
 
-    eprintln!("{:?}", partition_key_ident_and_type);
+    let range_key_ident_and_type = get_ident_and_type_of_field_annotated_with(fields, "range");
 
     // TODO moving this into separate function not working? (not the right signature I guess)
     let hashmap_inserts = fields.iter().map(|f| {
@@ -70,6 +76,46 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
             }
         }
     });
+
+    let get = if let Some(range) = range_key_ident_and_type {
+        let range_key_name = range.0.to_string();
+        let range_key_type = range.1;
+        let range_key_attribute_value = if matches_any_type(range_key_type, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
+            quote! {
+                AttributeValue::N(range.to_string())
+        }
+        } else {
+            quote! {
+                AttributeValue::S(range)
+            }
+        };
+
+        quote! {
+            pub async fn get(&self, partition: #partition_key_type, range: #range_key_type) -> Result<#name, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::GetItemError>> {
+                let result = self.client.get_item()
+                    .table_name(&self.table)
+                    .key(#partition_key_name, #partition_key_attribute_value)
+                    .key(#range_key_name, #range_key_attribute_value)
+                    .send()
+                    .await?;
+
+                let mappie = result.item.expect("Just temp"); // TODO transform into error
+                Ok(mappie.into())
+            }
+        }
+    } else {
+        quote! {
+            pub async fn get(&self, partition: #partition_key_type) -> Result<#name, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::GetItemError>> {
+                let result = self.client.get_item()
+                    .table_name(&self.table)
+                    .key(#partition_key_name, #partition_key_attribute_value)
+                    .send()
+                    .await?;
+                let mappie = result.item.expect("Just temp"); // TODO transform into error
+                Ok(mappie.into())
+            }
+        }
+    };
 
     let public_version = quote! {
         impl From<#name> for std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue> {
@@ -118,19 +164,18 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
                     .await
             }
 
-            pub async fn get(&self, key: #partition_key_type) -> Result<#name, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::GetItemError>> {
-                let result = self.client.get_item()
-                    .table_name(&self.table)
-                    .key(#partition_key_name, AttributeValue::S(key))
-                    .send()
-                    .await?;
-                let mappie = result.item.expect("Just temp"); // TODO transform into error
-                Ok(mappie.into())
-            }
+            #get
         }
     };
 
     public_version.into()
+}
+
+fn get_ident_and_type_of_field_annotated_with<'a>(fields: &'a Punctuated<Field, Comma>, name: &'a str) -> Option<(&'a Ident, &'a Type)> {
+    fields.iter()
+        .filter(|f| get_attribute(f, name).is_some())
+        .map(|f| (f.ident.as_ref().unwrap(), &f.ty))
+        .next()
 }
 
 fn get_relevant_field_info<'a>(f: &'a Field) -> (&'a Ident, String, &Type) {

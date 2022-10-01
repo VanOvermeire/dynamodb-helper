@@ -16,18 +16,30 @@ pub struct OrderStruct {
     total_amount: f32,
 }
 
+#[derive(DynamoDb, Debug)]
+pub struct OrderStructWithRange {
+    #[partition]
+    an_id: String,
+    #[range]
+    a_range: i32,
+    name: String,
+    total_amount: i32,
+}
+
+// TODO use a closure so we don't have to repeat all this setup?
+
 #[tokio::test]
 async fn should_be_able_to_get_from_dynamo() {
     let get_table = "getTable";
     let client = create_client().await;
     let client_for_struct = create_client().await;
 
-    init_table(&client, get_table).await;
+    init_table(&client, get_table, "an_id", None).await;
 
     let example = OrderStruct {
         an_id: "uid1234".to_string(),
         name: "Me".to_string(),
-        total_amount: 5.0
+        total_amount: 5.0,
     };
 
     let db = OrderStructDb::new(client_for_struct, get_table);
@@ -47,11 +59,53 @@ async fn should_be_able_to_get_from_dynamo() {
         .await
         .expect("To be able to get a result");
 
+    destroy_table(&client, get_table).await;
+
     assert_eq!(result.an_id, "uid1234");
     assert_eq!(result.name, "Me");
     assert_eq!(result.total_amount, 5.0);
 
+}
+
+#[tokio::test]
+async fn should_be_able_to_get_from_dynamo_with_range_key() {
+    let get_table = "getRangeTable";
+    let client = create_client().await;
+    let client_for_struct = create_client().await;
+
+    init_table(&client, get_table, "an_id", Some("a_range")).await;
+
+    let example = OrderStructWithRange {
+        an_id: "uid123".to_string(),
+        a_range: 1000,
+        name: "Me".to_string(),
+        total_amount: 6,
+    };
+    let db = OrderStructWithRangeDb::new(client_for_struct, get_table);
+
+    client.put_item()
+        .table_name(get_table)
+        .set_item(Some(HashMap::from([
+            ("an_id".to_string(), AttributeValue::S(example.an_id.to_string())),
+            ("a_range".to_string(), AttributeValue::N(example.a_range.to_string())),
+            ("name".to_string(), AttributeValue::S(example.name)),
+            ("total_amount".to_string(), AttributeValue::N(example.total_amount.to_string())),
+        ])))
+        .send()
+        .await
+        .expect("To be able to put");
+
+    let result = db.get(example.an_id.to_string(), example.a_range)
+        .await
+        .expect("To be able to get a result");
+
     destroy_table(&client, get_table).await;
+
+    assert_eq!(result.an_id, "uid123");
+    assert_eq!(result.a_range, 1000);
+    assert_eq!(result.name, "Me");
+    assert_eq!(result.total_amount, 6);
+
 }
 
 #[tokio::test]
@@ -60,12 +114,12 @@ async fn should_be_able_to_put_in_dynamo() {
     let client = create_client().await;
     let client_for_struct = create_client().await;
 
-    init_table(&client, put_table).await;
+    init_table(&client, put_table, "an_id", None).await;
 
     let example = OrderStruct {
         an_id: "uid123".to_string(),
         name: "Me".to_string(),
-        total_amount: 6.0
+        total_amount: 6.0,
     };
 
     let db = OrderStructDb::new(client_for_struct, put_table);
@@ -81,9 +135,9 @@ async fn should_be_able_to_put_in_dynamo() {
         .await
         .expect("To be able to get a result");
 
-    assert!(result.item().is_some());
-
     destroy_table(&client, put_table).await;
+
+    assert!(result.item().is_some());
 }
 
 async fn create_client() -> Client {
@@ -95,29 +149,58 @@ async fn create_client() -> Client {
     client
 }
 
-async fn init_table(client: &Client, table_name: &str) {
-    let ad = AttributeDefinition::builder()
-        .attribute_name("an_id")
-        .attribute_type(ScalarAttributeType::S)
-        .build();
+async fn init_table(client: &Client, table_name: &str, partition_key: &str, range_key_option: Option<&str>) {
+    let ads = if let Some(range_key) = range_key_option {
+        vec![
+            AttributeDefinition::builder()
+                .attribute_name(partition_key)
+                .attribute_type(ScalarAttributeType::S)
+                .build(),
+            AttributeDefinition::builder()
+                .attribute_name(range_key)
+                .attribute_type(ScalarAttributeType::N)
+                .build(),
+        ]
+    } else {
+        vec![
+            AttributeDefinition::builder()
+                .attribute_name(partition_key)
+                .attribute_type(ScalarAttributeType::S)
+                .build()
+        ]
+    };
 
-    let key = KeySchemaElement::builder()
-        .key_type(KeyType::Hash)
-        .attribute_name("an_id")
-        .build();
+    let keys = if let Some(range_key) = range_key_option {
+        vec![
+            KeySchemaElement::builder()
+                .key_type(KeyType::Hash)
+                .attribute_name(partition_key)
+                .build(),
+            KeySchemaElement::builder()
+                .key_type(KeyType::Range)
+                .attribute_name(range_key)
+                .build(),
+        ]
+    } else {
+        vec![
+            KeySchemaElement::builder()
+                .key_type(KeyType::Hash)
+                .attribute_name(partition_key)
+                .build()
+        ]
+    };
 
-    let pt = ProvisionedThroughput::builder()
-        .read_capacity_units(10)
-        .write_capacity_units(5)
-        .build();
-
-    let _ = client.create_table()
+    client.create_table()
         .table_name(table_name)
-        .key_schema(key)
-        .attribute_definitions(ad)
-        .provisioned_throughput(pt)
+        .set_key_schema(Some(keys))
+        .set_attribute_definitions(Some(ads))
+        .provisioned_throughput(ProvisionedThroughput::builder()
+            .read_capacity_units(10)
+            .write_capacity_units(5)
+            .build())
         .send()
-        .await;
+        .await
+        .expect("Creating a table to work");
 }
 
 async fn destroy_table(client: &Client, table_name: &str) {
@@ -125,5 +208,5 @@ async fn destroy_table(client: &Client, table_name: &str) {
         .table_name(table_name)
         .send()
         .await
-        .expect("Deleting table to work");
+        .expect("Deleting a table to work");
 }

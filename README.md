@@ -12,6 +12,7 @@ Also see the unit and integration tests.
 
 - support range keys
 - support all values
+- get for complex key with only partition key
 - delete call
 - scan call
 - own error handling

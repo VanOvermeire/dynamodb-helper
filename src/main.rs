@@ -57,15 +57,6 @@ impl TestDB {
     }
 }
 
-// impl Into<HashMap<String, AttributeValue>> for TestStruct {
-//     fn into(self) -> HashMap<String, AttributeValue> {
-//         let mut map = HashMap::new();
-//         map.insert("partition_key".to_string(), AttributeValue::S(self.partition_key));
-//         // map.insert("value".to_string(), aws_sdk_dynamodb::model::AttributeValue::N(self.value.to_string()));
-//         map
-//     }
-// }
-
 impl From<TestStruct> for HashMap<String, AttributeValue> {
     fn from(_: TestStruct) -> Self {
         todo!()
@@ -89,7 +80,9 @@ async fn main() {
     #[derive(DynamoDb)]
     struct ExampleStruct {
         #[partition]
-        partition_key: String,
+        partition_key: i32,
+        #[range]
+        a_range: String,
         value: i32,
     }
 }
