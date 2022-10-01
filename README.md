@@ -11,14 +11,14 @@ Also see the unit and integration tests.
 ## TODO
 
 - support range keys
-- support values besides String
+- support all values
 - delete call
 - scan call
-- more useful return from get
+- own error handling
+    - less use of expect, more Result
+    - and also tryfrom instead of from
 - help for query calls?
-- less use of expect
 
 ## Improvements
 
-Current setup will set up a DynamoDB client for every helper struct, which is not very effective.
-Improve testing
+- current setup will set up a DynamoDB client for every helper struct, which is not very effective

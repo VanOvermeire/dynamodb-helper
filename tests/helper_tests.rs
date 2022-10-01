@@ -13,7 +13,7 @@ pub struct OrderStruct {
     #[partition]
     an_id: String,
     name: String,
-    // total_amount: f32,
+    total_amount: f32,
 }
 
 #[tokio::test]
@@ -27,6 +27,7 @@ async fn should_be_able_to_get_from_dynamo() {
     let example = OrderStruct {
         an_id: "uid1234".to_string(),
         name: "Me".to_string(),
+        total_amount: 5.0
     };
 
     let db = OrderStructDb::new(client_for_struct, get_table);
@@ -36,6 +37,7 @@ async fn should_be_able_to_get_from_dynamo() {
         .set_item(Some(HashMap::from([
             ("an_id".to_string(), AttributeValue::S(example.an_id)),
             ("name".to_string(), AttributeValue::S(example.name)),
+            ("total_amount".to_string(), AttributeValue::N(example.total_amount.to_string())),
         ])))
         .send()
         .await
@@ -47,6 +49,7 @@ async fn should_be_able_to_get_from_dynamo() {
 
     assert_eq!(result.an_id, "uid1234");
     assert_eq!(result.name, "Me");
+    assert_eq!(result.total_amount, 5.0);
 
     destroy_table(&client, get_table).await;
 }
@@ -62,6 +65,7 @@ async fn should_be_able_to_put_in_dynamo() {
     let example = OrderStruct {
         an_id: "uid123".to_string(),
         name: "Me".to_string(),
+        total_amount: 6.0
     };
 
     let db = OrderStructDb::new(client_for_struct, put_table);
@@ -76,8 +80,6 @@ async fn should_be_able_to_put_in_dynamo() {
         .send()
         .await
         .expect("To be able to get a result");
-
-    println!("{:?}", result);
 
     assert!(result.item().is_some());
 

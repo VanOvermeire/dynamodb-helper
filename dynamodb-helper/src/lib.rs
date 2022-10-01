@@ -3,7 +3,8 @@ extern crate core;
 use quote::quote;
 use proc_macro::{TokenStream};
 use std::iter::Map;
-use syn::{parse_macro_input, DeriveInput, Field};
+use quote::__private::Ident;
+use syn::{parse_macro_input, DeriveInput, Field, Type};
 use syn::Data::Struct;
 use syn::DataStruct;
 use syn::Fields::Named;
@@ -14,35 +15,7 @@ use syn::Lit;
 use syn::punctuated::{Iter, Punctuated};
 use syn::token::Comma;
 
-// let mut table = "".to_string();
-//
-// for option in ast.attrs.into_iter() {
-// let ident = &option.path.segments.first().unwrap().ident;
-//
-// if ident == "table" {
-// let option = option.parse_meta().unwrap();
-// match option {
-// NameValue(MetaNameValue{ref lit, ..}) => {
-// if let Lit::Str(lit) = lit {
-// table = lit.value();
-// }
-// },
-// _ =>
-// }
-// }
-// }
-
-
-// eprintln!("Something {:?}", fields);
-
-fn get_attribute<'a>(f: &'a syn::Field, name: &'a str) -> Option<&'a syn::Attribute> {
-    for attr in &f.attrs {
-        if attr.path.segments.len() == 1 && attr.path.segments[0].ident == name.to_string() {
-            return Some(attr);
-        }
-    }
-    None
-}
+const ALL_NUMERIC_TYPES_AS_STRINGS: &'static [&'static str] = &["u8", "u16", "u32", "u64", "u128", "i8", "i16", "i32", "i64", "i128", "f32", "f64"];
 
 #[proc_macro_derive(DynamoDb, attributes(partition))]
 pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
@@ -68,44 +41,45 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
 
     // TODO moving this into separate function not working? (not the right signature I guess)
     let hashmap_inserts = fields.iter().map(|f| {
-        let name = &f.ident.as_ref().unwrap();
-        let name_as_string = name.to_string();
-        // TODO only works for String...
+        let (name, name_as_string, field_type) = get_relevant_field_info(f);
 
-        quote! {
-            map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::S(self.#name));
-        }
-    });
-    let hashmap_inserts_new = fields.iter().map(|f| {
-        let name = &f.ident.as_ref().unwrap();
-        let name_as_string = name.to_string();
-        // TODO only works for String...
-
-        quote! {
-            map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::S(input.#name));
+        // TODO handle other types like booleans
+        if matches_any_type( field_type, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
+            quote! {
+                map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::N(input.#name.to_string()));
+            }
+        } else {
+            // default to string
+            quote! {
+                map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::S(input.#name));
+            }
         }
     });
 
     let struct_inserts = fields.iter().map(|f| {
-        let name = &f.ident.as_ref().unwrap();
-        let name_as_string = name.to_string();
-        // TODO get and use type for right conversion
+        let (name, name_as_string, field_type) = get_relevant_field_info(f);
 
-        quote! {
-            #name: map.get(#name_as_string).map(|v| v.as_s().expect("Attribute value conversion to work")).map(|v| v.to_string()).expect("Value for struct property to be present"),
+        if matches_any_type( field_type, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
+            quote! {
+                #name: map.get(#name_as_string).map(|v| v.as_n().expect("Attribute value conversion to work")).map(|v| str::parse(v).expect("To be able to parse a number from Dynamo")).expect("Value for struct property to be present"),
+            }
+        } else {
+            // default to string
+            quote! {
+                #name: map.get(#name_as_string).map(|v| v.as_s().expect("Attribute value conversion to work")).map(|v| v.to_string()).expect("Value for struct property to be present"),
+            }
         }
     });
 
     let public_version = quote! {
-        // TODO try from is perhaps more appropriate for these (and no need to panic in that case)
         impl From<#name> for std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue> {
             fn from(input: #name) -> Self {
                 let mut map = std::collections::HashMap::new();
-                #(#hashmap_inserts_new)*
+                #(#hashmap_inserts)*
                 map
             }
         }
-        // TODO do we need both of these?
+
         impl From<std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>> for #name {
             fn from(map: std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>) -> Self {
                 #name {
@@ -137,8 +111,6 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
             }
 
             pub async fn put(&self, input: #name) -> Result<aws_sdk_dynamodb::output::PutItemOutput, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::PutItemError>> {
-                // println!("Putting stuff");
-                // let temp: std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue> = input.into();
                 self.client.put_item()
                     .table_name(self.table.to_string())
                     .set_item(Some(input.into()))
@@ -146,15 +118,14 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
                     .await
             }
 
-            // TODO we could transform get item output into something useful
             pub async fn get(&self, key: #partition_key_type) -> Result<#name, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::GetItemError>> {
                 let result = self.client.get_item()
                     .table_name(&self.table)
                     .key(#partition_key_name, AttributeValue::S(key))
                     .send()
                     .await?;
-                let mappie = result.item.expect("Just temp"); // TODO
-                Ok(#name::from(mappie))
+                let mappie = result.item.expect("Just temp"); // TODO transform into error
+                Ok(mappie.into())
             }
         }
     };
@@ -162,3 +133,29 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
     public_version.into()
 }
 
+fn get_relevant_field_info<'a>(f: &'a Field) -> (&'a Ident, String, &Type) {
+    let name = &f.ident.as_ref().unwrap();
+    let name_as_string = name.to_string();
+    let field_type = &f.ty;
+    (name, name_as_string, field_type)
+}
+
+fn get_attribute<'a>(f: &'a syn::Field, name: &'a str) -> Option<&'a syn::Attribute> {
+    for attr in &f.attrs {
+        if attr.path.segments.len() == 1 && attr.path.segments[0].ident == name.to_string() {
+            return Some(attr);
+        }
+    }
+    None
+}
+
+fn matches_any_type<'a>(ty: &'a syn::Type, type_names: Vec<&str>) -> bool {
+    type_names.iter().any(|v| matches_type(ty, v))
+}
+
+fn matches_type<'a>(ty: &'a syn::Type, type_name: &str) -> bool {
+    if let syn::Type::Path(ref p) = ty {
+        return p.path.segments[0].ident.to_string() == type_name.to_string()
+    }
+    false
+}

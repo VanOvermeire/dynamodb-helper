@@ -10,7 +10,7 @@ use dynamodb_helper::DynamoDb;
 // TODO remove
 struct TestStruct {
     partition_key: String,
-    // value: i32,
+    value: i32,
 }
 
 struct TestDB {
@@ -51,6 +51,8 @@ impl TestDB {
             .key("partition_key", AttributeValue::S(key))
             .send()
             .await?;
+
+
         Ok(res.item)
     }
 }
@@ -72,10 +74,12 @@ impl From<TestStruct> for HashMap<String, AttributeValue> {
 
 impl From<HashMap<String, AttributeValue>> for TestStruct {
     fn from(map: HashMap<String, AttributeValue>) -> Self {
-        let partition_key = map.get("partition_key").map(|v| v.as_s().expect("This to work")).expect("Value to be present");
+        let partition_key = map.get("partition_key").map(|v| v.as_s().expect("Conversion from AttributeValue to String to work")).expect("Value to be present");
+        let value = map.get("value").map(|v| v.as_n().expect("Conversion from AttributeValue to String to work")).map(|v| str::parse(v).expect("To be able to parse a number from Dynamo")).expect("Value to be present");
 
         TestStruct {
             partition_key: partition_key.to_string(),
+            value
         }
     }
 }
@@ -86,6 +90,7 @@ async fn main() {
     struct ExampleStruct {
         #[partition]
         partition_key: String,
+        value: i32,
     }
 }
 
@@ -98,12 +103,15 @@ mod tests {
     struct ExampleTestStruct {
         #[partition]
         partition_key: String,
-        // value: i32, TODO
+        value: i32,
     }
 
     #[tokio::test]
     async fn should_generate_a_helper_struct_with_build_method() {
-        let e = ExampleTestStruct { partition_key: "example".to_string() };
-        let help = ExampleTestStruct::build(aws_sdk_dynamodb::Region::new("eu-west-1"), "exampleTable").await;
+        let e = ExampleTestStruct {
+            partition_key: "example".to_string(),
+            value: 0
+        };
+        let help = ExampleTestStructDb::build(aws_sdk_dynamodb::Region::new("eu-west-1"), "exampleTable").await;
     }
 }
