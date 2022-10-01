@@ -8,9 +8,7 @@ use aws_sdk_dynamodb::types::SdkError;
 use dynamodb_helper::DynamoDb;
 use http::Uri;
 
-const EXAMPLE_TABLE: &'static str = "exampleTable";
-
-#[derive(DynamoDb)]
+#[derive(DynamoDb, Debug)]
 pub struct OrderStruct {
     #[partition]
     an_id: String,
@@ -18,24 +16,23 @@ pub struct OrderStruct {
     // total_amount: f32,
 }
 
-// type TestResult = Result<(), Box<dyn error::Error>>;
-
 #[tokio::test]
 async fn should_be_able_to_get_from_dynamo() {
+    let get_table = "getTable";
     let client = create_client().await;
     let client_for_struct = create_client().await;
 
-    init(&client).await;
+    init_table(&client, get_table).await;
 
     let example = OrderStruct {
         an_id: "uid1234".to_string(),
         name: "Me".to_string(),
     };
 
-    let db = OrderStructDb::new(client_for_struct, EXAMPLE_TABLE);
+    let db = OrderStructDb::new(client_for_struct, get_table);
 
     client.put_item()
-        .table_name(EXAMPLE_TABLE)
+        .table_name(get_table)
         .set_item(Some(HashMap::from([
             ("an_id".to_string(), AttributeValue::S(example.an_id)),
             ("name".to_string(), AttributeValue::S(example.name)),
@@ -48,32 +45,33 @@ async fn should_be_able_to_get_from_dynamo() {
         .await
         .expect("To be able to get a result");
 
-    assert!(result.item().is_some());
+    assert_eq!(result.an_id, "uid1234");
+    assert_eq!(result.name, "Me");
 
-    destroy(&client).await;
+    destroy_table(&client, get_table).await;
 }
-
 
 #[tokio::test]
 async fn should_be_able_to_put_in_dynamo() {
+    let put_table = "putTable";
     let client = create_client().await;
     let client_for_struct = create_client().await;
 
-    init(&client).await;
+    init_table(&client, put_table).await;
 
     let example = OrderStruct {
         an_id: "uid123".to_string(),
         name: "Me".to_string(),
     };
 
-    let db = OrderStructDb::new(client_for_struct, EXAMPLE_TABLE);
+    let db = OrderStructDb::new(client_for_struct, put_table);
 
     db.put(example)
         .await
         .expect("Put to work");
 
     let result = client.get_item()
-        .table_name(EXAMPLE_TABLE)
+        .table_name(put_table)
         .key("an_id".to_string(), AttributeValue::S("uid123".to_string()))
         .send()
         .await
@@ -83,7 +81,7 @@ async fn should_be_able_to_put_in_dynamo() {
 
     assert!(result.item().is_some());
 
-    destroy(&client).await;
+    destroy_table(&client, put_table).await;
 }
 
 async fn create_client() -> Client {
@@ -95,7 +93,7 @@ async fn create_client() -> Client {
     client
 }
 
-async fn init(client: &Client) {
+async fn init_table(client: &Client, table_name: &str) {
     let ad = AttributeDefinition::builder()
         .attribute_name("an_id")
         .attribute_type(ScalarAttributeType::S)
@@ -111,9 +109,8 @@ async fn init(client: &Client) {
         .write_capacity_units(5)
         .build();
 
-    // might be created by different tests, so ignore result (better way?)
     let _ = client.create_table()
-        .table_name(EXAMPLE_TABLE)
+        .table_name(table_name)
         .key_schema(key)
         .attribute_definitions(ad)
         .provisioned_throughput(pt)
@@ -121,10 +118,10 @@ async fn init(client: &Client) {
         .await;
 }
 
-async fn destroy(client: &Client) {
-    // might be created by different tests, so ignore result (better way?)
-    let _ = client.delete_table()
-        .table_name(EXAMPLE_TABLE)
+async fn destroy_table(client: &Client, table_name: &str) {
+    client.delete_table()
+        .table_name(table_name)
         .send()
-        .await;
+        .await
+        .expect("Deleting table to work");
 }

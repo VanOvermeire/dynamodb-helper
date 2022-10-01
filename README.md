@@ -4,14 +4,19 @@ This crate provides a macro that will generate a struct for interacting with Dyn
 
 ## Example Usage
 
-...
+TODO
+
+Also see the unit and integration tests.
 
 ## TODO
 
 - support range keys
 - support values besides String
-- valid delete call
+- delete call
+- scan call
+- more useful return from get
 - help for query calls?
+- less use of expect
 
 ## Improvements
 

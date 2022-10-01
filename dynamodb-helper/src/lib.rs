@@ -76,13 +76,41 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
             map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::S(self.#name));
         }
     });
+    let hashmap_inserts_new = fields.iter().map(|f| {
+        let name = &f.ident.as_ref().unwrap();
+        let name_as_string = name.to_string();
+        // TODO only works for String...
+
+        quote! {
+            map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::S(input.#name));
+        }
+    });
+
+    let struct_inserts = fields.iter().map(|f| {
+        let name = &f.ident.as_ref().unwrap();
+        let name_as_string = name.to_string();
+        // TODO get and use type for right conversion
+
+        quote! {
+            #name: map.get(#name_as_string).map(|v| v.as_s().expect("Attribute value conversion to work")).map(|v| v.to_string()).expect("Value for struct property to be present"),
+        }
+    });
 
     let public_version = quote! {
-        impl Into<std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>> for #name {
-            fn into(self) -> std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue> {
+        // TODO try from is perhaps more appropriate for these (and no need to panic in that case)
+        impl From<#name> for std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue> {
+            fn from(input: #name) -> Self {
                 let mut map = std::collections::HashMap::new();
-                #(#hashmap_inserts)*
+                #(#hashmap_inserts_new)*
                 map
+            }
+        }
+        // TODO do we need both of these?
+        impl From<std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>> for #name {
+            fn from(map: std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>) -> Self {
+                #name {
+                    #(#struct_inserts)*
+                }
             }
         }
 
@@ -119,12 +147,14 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
             }
 
             // TODO we could transform get item output into something useful
-            pub async fn get(&self, key: #partition_key_type) -> Result<aws_sdk_dynamodb::output::GetItemOutput, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::GetItemError>> {
-                self.client.get_item()
+            pub async fn get(&self, key: #partition_key_type) -> Result<#name, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::GetItemError>> {
+                let result = self.client.get_item()
                     .table_name(&self.table)
                     .key(#partition_key_name, AttributeValue::S(key))
                     .send()
-                    .await
+                    .await?;
+                let mappie = result.item.expect("Just temp"); // TODO
+                Ok(#name::from(mappie))
             }
         }
     };
