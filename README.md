@@ -22,3 +22,4 @@ Also see the unit and integration tests.
 ## Improvements
 
 - current setup will set up a DynamoDB client for every helper struct, which is not very effective
+- testing on unit level where necessary

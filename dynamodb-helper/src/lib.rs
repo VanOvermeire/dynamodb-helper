@@ -45,37 +45,8 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
 
     let range_key_ident_and_type = get_ident_and_type_of_field_annotated_with(fields, "range");
 
-    // TODO moving this into separate function not working? (not the right signature I guess)
-    let hashmap_inserts = fields.iter().map(|f| {
-        let (name, name_as_string, field_type) = get_relevant_field_info(f);
-
-        // TODO handle other types like booleans
-        if matches_any_type( field_type, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
-            quote! {
-                map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::N(input.#name.to_string()));
-            }
-        } else {
-            // default to string
-            quote! {
-                map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::S(input.#name));
-            }
-        }
-    });
-
-    let struct_inserts = fields.iter().map(|f| {
-        let (name, name_as_string, field_type) = get_relevant_field_info(f);
-
-        if matches_any_type( field_type, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
-            quote! {
-                #name: map.get(#name_as_string).map(|v| v.as_n().expect("Attribute value conversion to work")).map(|v| str::parse(v).expect("To be able to parse a number from Dynamo")).expect("Value for struct property to be present"),
-            }
-        } else {
-            // default to string
-            quote! {
-                #name: map.get(#name_as_string).map(|v| v.as_s().expect("Attribute value conversion to work")).map(|v| v.to_string()).expect("Value for struct property to be present"),
-            }
-        }
-    });
+    let from_struct_for_hashmap = build_from_struct_for_hashmap(&name, fields);
+    let from_hashmap_for_struct = build_from_hashmap_for_struct(&name, fields);
 
     let get = if let Some(range) = range_key_ident_and_type {
         let range_key_name = range.0.to_string();
@@ -118,21 +89,8 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
     };
 
     let public_version = quote! {
-        impl From<#name> for std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue> {
-            fn from(input: #name) -> Self {
-                let mut map = std::collections::HashMap::new();
-                #(#hashmap_inserts)*
-                map
-            }
-        }
-
-        impl From<std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>> for #name {
-            fn from(map: std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>) -> Self {
-                #name {
-                    #(#struct_inserts)*
-                }
-            }
-        }
+        #from_struct_for_hashmap
+        #from_hashmap_for_struct
 
         pub struct #helper_ident {
             client: aws_sdk_dynamodb::Client,
@@ -169,6 +127,61 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
     };
 
     public_version.into()
+}
+
+fn build_from_hashmap_for_struct(struct_name: &Ident, fields: &Punctuated<Field, Comma>) -> proc_macro2::TokenStream {
+    let struct_inserts = fields.iter().map(|f| {
+        let (name, name_as_string, field_type) = get_relevant_field_info(f);
+
+        if matches_any_type(field_type, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
+            quote! {
+                #name: map.get(#name_as_string).map(|v| v.as_n().expect("Attribute value conversion to work")).map(|v| str::parse(v).expect("To be able to parse a number from Dynamo")).expect("Value for struct property to be present"),
+            }
+        } else {
+            // default to string
+            quote! {
+                #name: map.get(#name_as_string).map(|v| v.as_s().expect("Attribute value conversion to work")).map(|v| v.to_string()).expect("Value for struct property to be present"),
+            }
+        }
+    });
+
+    quote! {
+        impl From<std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>> for #struct_name {
+            fn from(map: std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>) -> Self {
+                #struct_name {
+                    #(#struct_inserts)*
+                }
+            }
+        }
+    }
+}
+
+fn build_from_struct_for_hashmap(struct_name: &Ident, fields: &Punctuated<Field, Comma>) -> proc_macro2::TokenStream {
+    let hashmap_inserts = fields.iter().map(|f| {
+        let (name, name_as_string, field_type) = get_relevant_field_info(f);
+
+        // TODO handle other types like booleans
+        if matches_any_type(field_type, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
+            quote! {
+                map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::N(input.#name.to_string()));
+            }
+        } else {
+            // default to string
+            quote! {
+                map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::S(input.#name));
+            }
+        }
+    });
+
+    quote! {
+        impl From<#struct_name> for std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue> {
+            fn from(input: #struct_name) -> Self {
+                let mut map = std::collections::HashMap::new();
+                #(#hashmap_inserts)*
+                map
+            }
+        }
+    }
 }
 
 fn get_ident_and_type_of_field_annotated_with<'a>(fields: &'a Punctuated<Field, Comma>, name: &'a str) -> Option<(&'a Ident, &'a Type)> {
