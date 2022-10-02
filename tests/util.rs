@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use aws_sdk_dynamodb::{Client, Endpoint};
 use aws_sdk_dynamodb::model::{AttributeDefinition, AttributeValue, BillingMode, KeySchemaElement, KeyType, ProvisionedThroughput, ScalarAttributeType};
+use aws_sdk_dynamodb::output::GetItemOutput;
 use http::Uri;
 use dynamodb_helper::DynamoDb;
 use tokio_stream::StreamExt;
@@ -91,12 +92,12 @@ pub async fn destroy_table(client: &Client, table_name: &str) {
         .expect("Deleting a table to work");
 }
 
-pub async fn put_order_struct(table: &str, client: &Client, struc: OrderStruct) {
+pub async fn put_order_struct(table: &str, client: &Client, struc: &OrderStruct) {
     client.put_item()
         .table_name(table)
         .set_item(Some(HashMap::from([
-            ("an_id".to_string(), AttributeValue::S(struc.an_id)),
-            ("name".to_string(), AttributeValue::S(struc.name)),
+            ("an_id".to_string(), AttributeValue::S(struc.an_id.to_string())),
+            ("name".to_string(), AttributeValue::S(struc.name.to_string())),
             ("total_amount".to_string(), AttributeValue::N(struc.total_amount.to_string())),
         ])))
         .send()
@@ -116,4 +117,23 @@ pub async fn put_order_with_range_struct(table: &str, client: &Client, example: 
         .send()
         .await
         .expect("To be able to put");
+}
+
+pub async fn get_order_struct(table: &str, client: &Client, id: &str) -> GetItemOutput {
+    client.get_item()
+        .table_name(table)
+        .key("an_id".to_string(), AttributeValue::S(id.to_string()))
+        .send()
+        .await
+        .expect("To be able to get a result")
+}
+
+pub async fn get_order_struct_with_range(table: &str, client: &Client, id: &str, range: i32) -> GetItemOutput {
+    client.get_item()
+        .table_name(table)
+        .key("an_id".to_string(), AttributeValue::S(id.to_string()))
+        .key("a_range".to_string(), AttributeValue::N(range.to_string()))
+        .send()
+        .await
+        .expect("To be able to get a result")
 }

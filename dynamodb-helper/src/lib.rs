@@ -43,6 +43,7 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
 
     let gets = get_methods(&name, partition_key_ident_and_type, range_key_ident_and_type);
     let put = put_method(&name);
+    let delete = delete_method(&name, partition_key_ident_and_type, range_key_ident_and_type);
     let scan = scan_method(&name);
 
     let public_version = quote! {
@@ -63,6 +64,7 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
 
             #put
             #gets
+            #delete
             #scan
         }
     };
@@ -102,6 +104,39 @@ fn put_method(struct_name: &Ident) -> proc_macro2::TokenStream {
                 .set_item(Some(input.into()))
                 .send()
                 .await
+        }
+    }
+}
+
+fn delete_method(struct_name: &Ident, partition_key_ident_and_type: (&Ident, &Type), range_key_ident_and_type: Option<(&Ident, &Type)>) -> proc_macro2::TokenStream {
+    let partition_key_name = partition_key_ident_and_type.0.to_string();
+    let partition_key_type = partition_key_ident_and_type.1;
+    let partition_key_attribute_value = get_attribute_type(partition_key_type, Ident::new("partition", struct_name.span()));
+
+    if let Some(range) = range_key_ident_and_type {
+        let range_key_name = range.0.to_string();
+        let range_key_type = range.1;
+        let range_key_attribute_value = get_attribute_type(range_key_type, Ident::new("range", struct_name.span()));
+
+        quote! {
+            pub async fn delete(&self, partition: #partition_key_type, range: #range_key_type) -> Result<aws_sdk_dynamodb::output::DeleteItemOutput, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::DeleteItemError>> {
+                self.client.delete_item()
+                    .table_name(&self.table)
+                    .key(#partition_key_name, #partition_key_attribute_value)
+                    .key(#range_key_name, #range_key_attribute_value)
+                    .send()
+                    .await
+            }
+        }
+    } else {
+        quote! {
+            pub async fn delete(&self, partition: #partition_key_type) -> Result<aws_sdk_dynamodb::output::DeleteItemOutput, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::DeleteItemError>> {
+                self.client.delete_item()
+                    .table_name(&self.table)
+                    .key(#partition_key_name, #partition_key_attribute_value)
+                    .send()
+                    .await
+            }
         }
     }
 }

@@ -74,6 +74,7 @@ It has the following methods:
 - `get_by_partition_key()` when you have a complex key (partition plus range)
 - `scan()`
 - `put()`
+- `delete()`
 
 The create and delete table methods are appropriate for testing, pocs and smaller projects. For real applications it is probably better to create the tables as IAC and to pass the names to `new()` or `build()`.
 
@@ -83,11 +84,9 @@ Pull requests with improvements or additional features are welcome. They should 
 
 ## TODO
 
-- support all values
-- delete call
+- support all values (now just numbers, strings and boolean partially)
 - batch write
 - batch read
-- help for query calls?
 - handle pagination (for query and batch)
 - own error handling
     - less use of expect, more Result
@@ -95,6 +94,7 @@ Pull requests with improvements or additional features are welcome. They should 
 
 ## Improvements
 
+- help for query calls?
 - allow provisioned billing in table creation
 - allow decision on pub visibility of methods (default pub)?
 - allow to disable generation of methods
