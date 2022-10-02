@@ -1,11 +1,10 @@
 use std::collections::HashMap;
 use aws_sdk_dynamodb::Client;
 use aws_sdk_dynamodb::model::AttributeValue;
-use aws_sdk_dynamodb::types::SdkError;
 use dynamodb_helper::DynamoDb;
 use tokio_stream::StreamExt;
 
-// TODO remove
+// TODO remove test struct and test db
 struct TestStruct {
     partition_key: String,
     value: i32,
@@ -46,7 +45,7 @@ impl From<&HashMap<String, AttributeValue>> for TestStruct {
 #[tokio::main]
 async fn main() {
     #[derive(DynamoDb)]
-    struct ExampleStruct {
+    pub struct ExampleStruct {
         #[partition]
         partition_key: String,
     }

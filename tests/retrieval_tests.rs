@@ -9,8 +9,6 @@ use tokio_stream::StreamExt;
 mod util;
 use util::*;
 
-// TODO use a closure so we don't have to repeat all this setup?
-
 #[tokio::test]
 async fn should_be_able_to_get_from_dynamo() {
     let get_table = "getTable";

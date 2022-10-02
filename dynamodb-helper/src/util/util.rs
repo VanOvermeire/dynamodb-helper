@@ -3,6 +3,8 @@ use syn::{Field, Type};
 use syn::punctuated::{Punctuated};
 use syn::token::Comma;
 
+pub const ALL_NUMERIC_TYPES_AS_STRINGS: &'static [&'static str] = &["u8", "u16", "u32", "u64", "u128", "i8", "i16", "i32", "i64", "i128", "f32", "f64"];
+
 pub fn get_ident_and_type_of_field_annotated_with<'a>(fields: &'a Punctuated<Field, Comma>, name: &'a str) -> Option<(&'a Ident, &'a Type)> {
     fields.iter()
         .filter(|f| get_attribute(f, name).is_some())
