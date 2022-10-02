@@ -8,6 +8,7 @@ dynamodb-helper = { path = "./dynamodb-helper" }
 aws-config = "0.47.0"
 aws-sdk-dynamodb = "0.17.0"
 tokio = { version = "1", features = ["full"] }
+tokio-stream = "0.1.10"
 
 [dev-dependencies]
 http = "0.2.8"

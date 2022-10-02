@@ -15,6 +15,20 @@ aws-config = "0.47.0"
 aws-sdk-dynamodb = "0.17.0"
 ```
 
+## Important notes
+
+Certain methods like scan required the following trait to be in scope, so you will need to add this to your file
+
+```
+use tokio_stream::StreamExt;
+```
+
+For which you will need the `tokio-stream` dependency.
+
+If you get an error warning about `the following trait bounds were not satisfied: impl futures_core::stream::Stream<Item = Result<...> + Unpin: Iterator`
+
+In the future, you will be able to disable generation of these methods as an alternative.
+
 ## Details
 
 ### Attributes
@@ -35,23 +49,25 @@ It has the following methods:
 - `build()`
 - `get()`
 - `get_by_partition_key()` when you have a complex key (partition plus range)
+- `scan()`
 - `put()`
 
 ## TODO
 
 - support all values
 - delete call
-- scan call
 - batch write
 - batch read
 - create and delete table call
 - help for query calls?
+- handle pagination
 - own error handling
     - less use of expect, more Result
     - and also tryfrom instead of from
 
 ## Improvements
 
+- allow to disable generation of methods
 - current setup will set up a DynamoDB client for every helper struct, which is not very effective
 - testing on unit level where necessary
 - automated setup with Github Actions

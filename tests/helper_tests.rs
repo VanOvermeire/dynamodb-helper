@@ -1,8 +1,11 @@
 use std::collections::HashMap;
 use aws_sdk_dynamodb::{Client, Endpoint};
 use aws_sdk_dynamodb::model::{AttributeDefinition, AttributeValue, KeySchemaElement, KeyType, ProvisionedThroughput, ScalarAttributeType};
+use std::iter::Iterator;
+use aws_sdk_dynamodb::types::SdkError;
 use dynamodb_helper::DynamoDb;
 use http::Uri;
+use tokio_stream::StreamExt;
 
 #[derive(DynamoDb, Debug)]
 pub struct OrderStruct {
@@ -168,6 +171,59 @@ async fn should_be_able_to_get_from_dynamo_only_using_partition_part() {
     assert_eq!(result.len(), 2);
     assert_eq!(result[0].a_range, 1000);
     assert_eq!(result[1].a_range, 1001);
+}
+
+#[tokio::test]
+async fn should_be_able_to_scan_dynamo() {
+    let scan_table = "myScanTable";
+    let client = create_client().await;
+    let client_for_struct = create_client().await;
+
+    init_table(&client, scan_table, "an_id", None).await;
+
+    let example = OrderStruct {
+        an_id: "uid1234".to_string(),
+        name: "Me".to_string(),
+        total_amount: 5.0,
+    };
+
+    let second_example = OrderStruct {
+        an_id: "uid1235".to_string(),
+        name: "You".to_string(),
+        total_amount: 7.5,
+    };
+
+    let db = OrderStructDb::new(client_for_struct, scan_table);
+
+    client.put_item()
+        .table_name(scan_table)
+        .set_item(Some(HashMap::from([
+            ("an_id".to_string(), AttributeValue::S(example.an_id.to_string())),
+            ("name".to_string(), AttributeValue::S(example.name)),
+            ("total_amount".to_string(), AttributeValue::N(example.total_amount.to_string())),
+        ])))
+        .send()
+        .await
+        .expect("To be able to put the first item");
+
+    client.put_item()
+        .table_name(scan_table)
+        .set_item(Some(HashMap::from([
+            ("an_id".to_string(), AttributeValue::S(second_example.an_id.to_string())),
+            ("name".to_string(), AttributeValue::S(second_example.name)),
+            ("total_amount".to_string(), AttributeValue::N(second_example.total_amount.to_string())),
+        ])))
+        .send()
+        .await
+        .expect("To be able to put the second item");
+
+    let result = db.scan()
+        .await
+        .expect("Scan to succeed");
+
+    destroy_table(&client, scan_table).await;
+
+    assert_eq!(result.len(), 2);
 }
 
 #[tokio::test]

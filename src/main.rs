@@ -6,6 +6,7 @@ use aws_sdk_dynamodb::model::AttributeValue;
 use aws_sdk_dynamodb::output::{GetItemOutput, PutItemOutput};
 use aws_sdk_dynamodb::types::SdkError;
 use dynamodb_helper::DynamoDb;
+use tokio_stream::StreamExt;
 
 // TODO remove
 struct TestStruct {
@@ -25,44 +26,6 @@ impl TestDB {
             table,
         }
     }
-
-    async fn build(region: aws_sdk_dynamodb::Region) -> Self {
-        let region_provider = aws_config::meta::region::RegionProviderChain::first_try(region).or_default_provider();
-        let shared_config = aws_config::from_env().region(region_provider).load().await;
-        TestDB::new(Client::new(&shared_config), "".to_string())
-    }
-
-    pub async fn put(&self) -> Result<PutItemOutput, SdkError<PutItemError>> {
-        let mut second = std::collections::HashMap::from([
-            ("Mercury".to_string(), AttributeValue::N("0.4".to_string())),
-            ("Venus".to_string(), AttributeValue::N("0.7".to_string()))
-        ]);
-
-        self.client.put_item()
-            .table_name(&self.table)
-            .set_item(Some(second))
-            .send()
-            .await
-    }
-
-    pub async fn get(&self, key: String) -> Result<Option<HashMap<String, AttributeValue>>, SdkError<GetItemError>> {
-        let res = self.client.get_item()
-            .table_name(&self.table)
-            .key("partition_key", AttributeValue::S(key))
-            .send()
-            .await?;
-
-
-        Ok(res.item)
-    }
-
-    // pub async fn batch_get(&self, keys: Vec<String>) -> Result<Option<&HashMap<String, Vec<HashMap<String, AttributeValue>>>>, aws_sdk_dynamodb::error::BatchGetItemError> {
-    //     let res = self.client.batch_get_item()
-    //         .set_request_items()
-    //         .send()
-    //         .await?;
-    //     Ok(res.responses())
-    // }
 }
 
 impl From<TestStruct> for HashMap<String, AttributeValue> {
@@ -72,19 +35,25 @@ impl From<TestStruct> for HashMap<String, AttributeValue> {
 }
 
 impl From<HashMap<String, AttributeValue>> for TestStruct {
-    fn from(map: HashMap<String, AttributeValue>) -> Self {
-        let partition_key = map.get("partition_key").map(|v| v.as_s().expect("Conversion from AttributeValue to String to work")).expect("Value to be present");
-        let value = map.get("value").map(|v| v.as_n().expect("Conversion from AttributeValue to String to work")).map(|v| str::parse(v).expect("To be able to parse a number from Dynamo")).expect("Value to be present");
+    fn from(_: HashMap<String, AttributeValue>) -> Self {
+        todo!()
+    }
+}
 
-        TestStruct {
-            partition_key: partition_key.to_string(),
-            value
-        }
+impl From<&HashMap<String, AttributeValue>> for TestStruct {
+    fn from(_: &HashMap<String, AttributeValue>) -> Self {
+        todo!()
     }
 }
 
 #[tokio::main]
-async fn main() {}
+async fn main() {
+    #[derive(DynamoDb)]
+    struct ExampleStruct {
+        #[partition]
+        partition_key: String,
+    }
+}
 
 #[cfg(test)]
 mod tests {

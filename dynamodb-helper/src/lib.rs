@@ -38,6 +38,7 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
     let build = build_method(&helper_ident);
     let gets = get_methods(&name, partition_key_ident_and_type, range_key_ident_and_type);
     let put = put_method(&name);
+    let scan = scan_method(&name);
 
     let public_version = quote! {
         #from_struct_for_hashmap
@@ -53,6 +54,7 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
             #build
             #put
             #gets
+            #scan
         }
     };
 
@@ -163,6 +165,24 @@ fn get_methods(struct_name: &Ident, partition_key_ident_and_type: (&Ident, &Type
                     .await?;
                 Ok(result.item.map(|v| v.into()))
             }
+        }
+    }
+}
+
+fn scan_method(struct_name: &Ident) -> proc_macro2::TokenStream {
+    quote! {
+        pub async fn scan(&self) -> Result<Vec<#struct_name>, aws_sdk_dynamodb::error::ScanError> {
+            let items: Result<Vec<std::collections::HashMap<std::string::String, aws_sdk_dynamodb::model::AttributeValue>>, _> = self.client.scan()
+                .table_name(&self.table)
+                .into_paginator()
+                .items()
+                .send()
+                .collect()
+                .await;
+
+            let mapped_items: Vec<#struct_name> = items.expect("TODO map tokio error onto own error").iter().map(|i| i.into()).collect(); // TODO, the error returned is prob from tokio and cannot just be mapped onto scan
+
+            Ok(mapped_items)
         }
     }
 }

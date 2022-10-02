@@ -390,6 +390,7 @@ dependencies = [
  "dynamodb-helper",
  "http",
  "tokio",
+ "tokio-stream",
 ]
 
 [[package]]
