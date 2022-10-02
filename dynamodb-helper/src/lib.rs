@@ -71,7 +71,7 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
 
 fn new_method(helper_ident: &Ident) -> proc_macro2::TokenStream {
     quote! {
-        fn new(client: aws_sdk_dynamodb::Client, table: &str) -> Self {
+        pub fn new(client: aws_sdk_dynamodb::Client, table: &str) -> Self {
             #helper_ident {
                 client,
                 table: table.to_string()
@@ -326,7 +326,7 @@ fn build_from_hashmap_for_struct(struct_name: &Ident, fields: &Punctuated<Field,
         }
 
         impl From<&std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>> for #struct_name {
-            fn from(map: &HashMap<String, AttributeValue>) -> Self {
+            fn from(map: &std::collections::HashMap<String, AttributeValue>) -> Self {
                 #struct_name {
                     #(#struct_inserts_copy)*
                 }

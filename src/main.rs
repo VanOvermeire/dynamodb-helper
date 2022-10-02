@@ -1,9 +1,6 @@
 use std::collections::HashMap;
-use aws_config::SdkConfig;
 use aws_sdk_dynamodb::Client;
-use aws_sdk_dynamodb::error::{BatchGetItemError, GetItemError, PutItemError};
 use aws_sdk_dynamodb::model::AttributeValue;
-use aws_sdk_dynamodb::output::{GetItemOutput, PutItemOutput};
 use aws_sdk_dynamodb::types::SdkError;
 use dynamodb_helper::DynamoDb;
 use tokio_stream::StreamExt;
