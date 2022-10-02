@@ -5,6 +5,28 @@ use syn::token::Comma;
 
 pub const ALL_NUMERIC_TYPES_AS_STRINGS: &'static [&'static str] = &["u8", "u16", "u32", "u64", "u128", "i8", "i16", "i32", "i64", "i128", "f32", "f64"];
 
+pub enum DynamoTypes {
+    Number,
+    NumberSet, // Ns ["42.2", "-19", "7.5", "3.14"] -> pass as Vec<String>, is Vec<Number>
+    String,
+    StringSet, // Ss ["Giraffe", "Hippo" ,"Zebra"] -> so Vec<String>
+    Boolean, // Bool
+    Binary,
+    BinarySet,
+    List, // L [ {"S": "Cookies"} , {"S": "Coffee"}, {"N": "3.14159"}]
+    Map, // M {"Name": {"S": "Joe"}, "Age": {"N": "35"}}, pass as Hashmap String AttributeValue
+    Null, // Null (bool)
+}
+
+// TODO use this to pattern match and take the right action
+pub fn get_dynamo_type(typez: &Type) -> DynamoTypes {
+    if matches_any_type(typez, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
+        DynamoTypes::Number
+    } else {
+        DynamoTypes::String
+    }
+}
+
 pub fn get_ident_and_type_of_field_annotated_with<'a>(fields: &'a Punctuated<Field, Comma>, name: &'a str) -> Option<(&'a Ident, &'a Type)> {
     fields.iter()
         .filter(|f| get_attribute(f, name).is_some())

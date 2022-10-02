@@ -44,7 +44,7 @@ let multiple_structs = other_db.get_by_partition_key("someId".to_string()).await
 
 Also see the unit and integration tests.
 
-Note that you will need an AWS account, credentials and these dependencies (or higher):
+Note that you will need an AWS account, credentials and these dependencies:
 
 ```
 aws-config = "0.47.0"
