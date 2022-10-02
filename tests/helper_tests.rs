@@ -64,7 +64,6 @@ async fn should_be_able_to_get_from_dynamo() {
     assert_eq!(result.an_id, "uid1234");
     assert_eq!(result.name, "Me");
     assert_eq!(result.total_amount, 5.0);
-
 }
 
 #[tokio::test]
@@ -110,6 +109,65 @@ async fn should_be_able_to_get_from_dynamo_with_range_key() {
     assert_eq!(result.a_range, 1000);
     assert_eq!(result.name, "Me");
     assert_eq!(result.total_amount, 6);
+}
+
+#[tokio::test]
+async fn should_be_able_to_get_from_dynamo_only_using_partition_part() {
+    let get_table = "getByPartitionKeyTable";
+    let client = create_client().await;
+    let client_for_struct = create_client().await;
+
+    init_table(&client, get_table, "an_id", Some("a_range")).await;
+
+    let example = OrderStructWithRange {
+        an_id: "uid123".to_string(),
+        a_range: 1000,
+        name: "Me".to_string(),
+        total_amount: 6,
+    };
+
+    let second_example = OrderStructWithRange {
+        an_id: "uid123".to_string(),
+        a_range: 1001,
+        name: "You".to_string(),
+        total_amount: 7,
+    };
+
+    let db = OrderStructWithRangeDb::new(client_for_struct, get_table);
+
+    client.put_item()
+        .table_name(get_table)
+        .set_item(Some(HashMap::from([
+            ("an_id".to_string(), AttributeValue::S(example.an_id.to_string())),
+            ("a_range".to_string(), AttributeValue::N(example.a_range.to_string())),
+            ("name".to_string(), AttributeValue::S(example.name)),
+            ("total_amount".to_string(), AttributeValue::N(example.total_amount.to_string())),
+        ])))
+        .send()
+        .await
+        .expect("To be able to put first item");
+
+    client.put_item()
+        .table_name(get_table)
+        .set_item(Some(HashMap::from([
+            ("an_id".to_string(), AttributeValue::S(second_example.an_id.to_string())),
+            ("a_range".to_string(), AttributeValue::N(second_example.a_range.to_string())),
+            ("name".to_string(), AttributeValue::S(second_example.name)),
+            ("total_amount".to_string(), AttributeValue::N(second_example.total_amount.to_string())),
+        ])))
+        .send()
+        .await
+        .expect("To be able to put second item");
+
+    let result = db.get_by_partition_key(example.an_id.to_string())
+        .await
+        .expect("Get by partition key to succeed");
+
+    destroy_table(&client, get_table).await;
+
+    assert_eq!(result.len(), 2);
+    assert_eq!(result[0].a_range, 1000);
+    assert_eq!(result[1].a_range, 1001);
 }
 
 #[tokio::test]

@@ -36,7 +36,7 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
 
     let new = new_method(&helper_ident);
     let build = build_method(&helper_ident);
-    let get = get_method(&name, partition_key_ident_and_type, range_key_ident_and_type);
+    let gets = get_methods(&name, partition_key_ident_and_type, range_key_ident_and_type);
     let put = put_method(&name);
 
     let public_version = quote! {
@@ -52,7 +52,7 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
             #new
             #build
             #put
-            #get
+            #gets
         }
     };
 
@@ -95,7 +95,7 @@ fn put_method(struct_name: &Ident) -> proc_macro2::TokenStream {
     }
 }
 
-fn get_method(struct_name: &Ident, partition_key_ident_and_type: (&Ident, &Type), range_key_ident_and_type: Option<(&Ident, &Type)>) -> proc_macro2::TokenStream {
+fn get_methods(struct_name: &Ident, partition_key_ident_and_type: (&Ident, &Type), range_key_ident_and_type: Option<(&Ident, &Type)>) -> proc_macro2::TokenStream {
     let partition_key_name = partition_key_ident_and_type.0.to_string();
     let partition_key_type = partition_key_ident_and_type.1;
 
@@ -124,6 +124,25 @@ fn get_method(struct_name: &Ident, partition_key_ident_and_type: (&Ident, &Type)
         };
 
         quote! {
+            pub async fn get_by_partition_key(&self, partition: #partition_key_type) -> Result<Vec<#struct_name>, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::QueryError>> {
+                let result = self.client.query()
+                    .table_name(&self.table)
+                    .key_condition_expression("#pk = :pkval")
+                    .expression_attribute_names("#pk", #partition_key_name)
+                    .expression_attribute_values(":pkval", #partition_key_attribute_value)
+                    .send()
+                    .await?;
+
+                let mapped_result: Vec<#struct_name> = result.items()
+                    .map(|v| v.to_vec())
+                    .unwrap_or_else(|| vec![])
+                    .iter()
+                    .map(|v| v.into())
+                    .collect();
+
+                Ok(mapped_result)
+            }
+
             pub async fn get(&self, partition: #partition_key_type, range: #range_key_type) -> Result<Option<#struct_name>, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::GetItemError>> {
                 let result = self.client.get_item()
                     .table_name(&self.table)
@@ -163,12 +182,21 @@ fn build_from_hashmap_for_struct(struct_name: &Ident, fields: &Punctuated<Field,
             }
         }
     });
+    let struct_inserts_copy = struct_inserts.clone(); // quote takes ownership
 
     quote! {
         impl From<std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>> for #struct_name {
             fn from(map: std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>) -> Self {
                 #struct_name {
                     #(#struct_inserts)*
+                }
+            }
+        }
+
+        impl From<&std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>> for #struct_name {
+            fn from(map: &HashMap<String, AttributeValue>) -> Self {
+                #struct_name {
+                    #(#struct_inserts_copy)*
                 }
             }
         }

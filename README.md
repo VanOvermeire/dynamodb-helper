@@ -34,18 +34,21 @@ It has the following methods:
 - `new()`
 - `build()`
 - `get()`
+- `get_by_partition_key()` when you have a complex key (partition plus range)
 - `put()`
 
 ## TODO
 
 - support all values
-- get for complex key with only partition key
 - delete call
 - scan call
+- batch write
+- batch read
+- create and delete table call
+- help for query calls?
 - own error handling
     - less use of expect, more Result
     - and also tryfrom instead of from
-- help for query calls?
 
 ## Improvements
 

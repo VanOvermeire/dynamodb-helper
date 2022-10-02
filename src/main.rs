@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use aws_config::SdkConfig;
 use aws_sdk_dynamodb::Client;
-use aws_sdk_dynamodb::error::{GetItemError, PutItemError};
+use aws_sdk_dynamodb::error::{BatchGetItemError, GetItemError, PutItemError};
 use aws_sdk_dynamodb::model::AttributeValue;
 use aws_sdk_dynamodb::output::{GetItemOutput, PutItemOutput};
 use aws_sdk_dynamodb::types::SdkError;
@@ -14,12 +14,12 @@ struct TestStruct {
 }
 
 struct TestDB {
-    client: aws_sdk_dynamodb::Client,
+    client: Client,
     table: String,
 }
 
 impl TestDB {
-    fn new(client: aws_sdk_dynamodb::Client, table: String) -> Self {
+    fn new(client: Client, table: String) -> Self {
         TestDB {
             client,
             table,
@@ -29,13 +29,13 @@ impl TestDB {
     async fn build(region: aws_sdk_dynamodb::Region) -> Self {
         let region_provider = aws_config::meta::region::RegionProviderChain::first_try(region).or_default_provider();
         let shared_config = aws_config::from_env().region(region_provider).load().await;
-        TestDB::new(aws_sdk_dynamodb::Client::new(&shared_config), "".to_string())
+        TestDB::new(Client::new(&shared_config), "".to_string())
     }
 
     pub async fn put(&self) -> Result<PutItemOutput, SdkError<PutItemError>> {
         let mut second = std::collections::HashMap::from([
-            ("Mercury".to_string(), aws_sdk_dynamodb::model::AttributeValue::N("0.4".to_string())),
-            ("Venus".to_string(), aws_sdk_dynamodb::model::AttributeValue::N("0.7".to_string()))
+            ("Mercury".to_string(), AttributeValue::N("0.4".to_string())),
+            ("Venus".to_string(), AttributeValue::N("0.7".to_string()))
         ]);
 
         self.client.put_item()
@@ -45,7 +45,7 @@ impl TestDB {
             .await
     }
 
-    pub async fn get(&self, key: String) -> Result<Option<HashMap<String, AttributeValue>>, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::GetItemError>> {
+    pub async fn get(&self, key: String) -> Result<Option<HashMap<String, AttributeValue>>, SdkError<GetItemError>> {
         let res = self.client.get_item()
             .table_name(&self.table)
             .key("partition_key", AttributeValue::S(key))
@@ -55,6 +55,14 @@ impl TestDB {
 
         Ok(res.item)
     }
+
+    // pub async fn batch_get(&self, keys: Vec<String>) -> Result<Option<&HashMap<String, Vec<HashMap<String, AttributeValue>>>>, aws_sdk_dynamodb::error::BatchGetItemError> {
+    //     let res = self.client.batch_get_item()
+    //         .set_request_items()
+    //         .send()
+    //         .await?;
+    //     Ok(res.responses())
+    // }
 }
 
 impl From<TestStruct> for HashMap<String, AttributeValue> {
@@ -76,16 +84,7 @@ impl From<HashMap<String, AttributeValue>> for TestStruct {
 }
 
 #[tokio::main]
-async fn main() {
-    #[derive(DynamoDb)]
-    struct ExampleStruct {
-        #[partition]
-        partition_key: i32,
-        #[range]
-        a_range: String,
-        value: i32,
-    }
-}
+async fn main() {}
 
 #[cfg(test)]
 mod tests {
