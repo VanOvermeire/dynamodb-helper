@@ -36,6 +36,10 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
 
     let new = new_method(&helper_ident);
     let build = build_method(&helper_ident);
+
+    let create_table = create_table_method(partition_key_ident_and_type, range_key_ident_and_type);
+    let delete_table = delete_table_method();
+
     let gets = get_methods(&name, partition_key_ident_and_type, range_key_ident_and_type);
     let put = put_method(&name);
     let scan = scan_method(&name);
@@ -52,6 +56,10 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
         impl #helper_ident {
             #new
             #build
+
+            #create_table
+            #delete_table
+
             #put
             #gets
             #scan
@@ -118,7 +126,7 @@ fn get_methods(struct_name: &Ident, partition_key_ident_and_type: (&Ident, &Type
         let range_key_attribute_value = if matches_any_type(range_key_type, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
             quote! {
                 AttributeValue::N(range.to_string())
-        }
+            }
         } else {
             quote! {
                 AttributeValue::S(range)
@@ -183,6 +191,110 @@ fn scan_method(struct_name: &Ident) -> proc_macro2::TokenStream {
             let mapped_items: Vec<#struct_name> = items.expect("TODO map tokio error onto own error").iter().map(|i| i.into()).collect(); // TODO, the error returned is prob from tokio and cannot just be mapped onto scan
 
             Ok(mapped_items)
+        }
+    }
+}
+
+// TODO allow provisioned billing
+fn create_table_method(partition_key_ident_and_type: (&Ident, &Type), range_key_ident_and_type: Option<(&Ident, &Type)>) -> proc_macro2::TokenStream {
+    let partition_key_name = partition_key_ident_and_type.0.to_string();
+    let partition_key_type = partition_key_ident_and_type.1;
+    let partition_key_attribute_value = if matches_any_type(partition_key_type, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
+        quote! {
+            aws_sdk_dynamodb::model::ScalarAttributeType::N
+        }
+    } else {
+        quote! {
+            aws_sdk_dynamodb::model::ScalarAttributeType::S
+        }
+    };
+
+    let ads_def = if let Some(range) = range_key_ident_and_type {
+        let range_key_name = range.0.to_string();
+        let range_key_type = range.1;
+        // TODO scalar type B
+        let range_key_attribute_value = if matches_any_type(range_key_type, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
+            quote! {
+                aws_sdk_dynamodb::model::ScalarAttributeType::N
+            }
+        } else {
+            quote! {
+                aws_sdk_dynamodb::model::ScalarAttributeType::S
+            }
+        };
+
+        quote! {
+            let ads = vec![
+                aws_sdk_dynamodb::model::AttributeDefinition::builder()
+                    .attribute_name(#partition_key_name)
+                    .attribute_type(#partition_key_attribute_value)
+                    .build(),
+                aws_sdk_dynamodb::model::AttributeDefinition::builder()
+                    .attribute_name(#range_key_name)
+                    .attribute_type(#range_key_attribute_value)
+                    .build(),
+            ];
+        }
+    } else {
+        quote! {
+            let ads = vec![
+                aws_sdk_dynamodb::model::AttributeDefinition::builder()
+                    .attribute_name(#partition_key_name)
+                    .attribute_type(#partition_key_attribute_value)
+                    .build(),
+            ];
+        }
+    };
+
+    let keys_def = if let Some(range) = range_key_ident_and_type {
+        let range_key_name = range.0.to_string();
+
+        quote! {
+            let keys = vec![
+                aws_sdk_dynamodb::model::KeySchemaElement::builder()
+                    .key_type(aws_sdk_dynamodb::model::KeyType::Hash)
+                    .attribute_name(#partition_key_name)
+                    .build(),
+                aws_sdk_dynamodb::model::KeySchemaElement::builder()
+                    .key_type(aws_sdk_dynamodb::model::KeyType::Range)
+                    .attribute_name(#range_key_name)
+                    .build(),
+            ];
+        }
+    } else {
+        quote! {
+            let keys = vec![
+                aws_sdk_dynamodb::model::KeySchemaElement::builder()
+                    .key_type(aws_sdk_dynamodb::model::KeyType::Hash)
+                    .attribute_name(#partition_key_name)
+                    .build()
+            ];
+        }
+    };
+
+    quote! {
+        pub async fn create_table(&self) -> Result<aws_sdk_dynamodb::output::CreateTableOutput, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::CreateTableError>> {
+            #ads_def
+            #keys_def
+
+            self.client.create_table()
+                .table_name(&self.table)
+                .set_key_schema(Some(keys))
+                .set_attribute_definitions(Some(ads))
+                .billing_mode(aws_sdk_dynamodb::model::BillingMode::PayPerRequest)
+                .send()
+                .await
+        }
+    }
+}
+
+fn delete_table_method() -> proc_macro2::TokenStream {
+    quote! {
+        pub async fn delete_table(&self) -> Result<aws_sdk_dynamodb::output::DeleteTableOutput, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::DeleteTableError>> {
+            self.client.delete_table()
+                .table_name(&self.table)
+                .send()
+                .await
         }
     }
 }

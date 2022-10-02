@@ -47,10 +47,14 @@ The macro will generate a new struct, with the name of the annotated struct plus
 It has the following methods:
 - `new()`
 - `build()`
+- `createTable()`
+- `deleteTable()`
 - `get()`
 - `get_by_partition_key()` when you have a complex key (partition plus range)
 - `scan()`
 - `put()`
+
+The create and delete table methods are appropriate for testing, pocs and smaller projects. For real applications it is probably better to create the tables as IAC and to pass the names to `new()` or `build()`.
 
 ## TODO
 
@@ -58,9 +62,8 @@ It has the following methods:
 - delete call
 - batch write
 - batch read
-- create and delete table call
 - help for query calls?
-- handle pagination
+- handle pagination (for query and batch)
 - own error handling
     - less use of expect, more Result
     - and also tryfrom instead of from
