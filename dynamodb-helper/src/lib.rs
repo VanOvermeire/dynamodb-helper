@@ -2,7 +2,7 @@ extern crate core;
 
 mod util;
 
-use crate::util::{get_ident_and_type_of_field_annotated_with, get_relevant_field_info, matches_any_type};
+use crate::util::{get_ident_and_type_of_field_annotated_with, get_relevant_field_info, matches_any_type, matches_type};
 use quote::quote;
 use proc_macro::{TokenStream};
 use quote::__private::Ident;
@@ -12,6 +12,7 @@ use syn::DataStruct;
 use syn::Fields::Named;
 use syn::FieldsNamed;
 use syn::punctuated::{Punctuated};
+use syn::spanned::Spanned;
 use syn::token::Comma;
 
 const ALL_NUMERIC_TYPES_AS_STRINGS: &'static [&'static str] = &["u8", "u16", "u32", "u64", "u128", "i8", "i16", "i32", "i64", "i128", "f32", "f64"];
@@ -108,30 +109,12 @@ fn put_method(struct_name: &Ident) -> proc_macro2::TokenStream {
 fn get_methods(struct_name: &Ident, partition_key_ident_and_type: (&Ident, &Type), range_key_ident_and_type: Option<(&Ident, &Type)>) -> proc_macro2::TokenStream {
     let partition_key_name = partition_key_ident_and_type.0.to_string();
     let partition_key_type = partition_key_ident_and_type.1;
-
-    // TODO should be able to move this type of logic somewhere eventually - but be careful with the name
-    let partition_key_attribute_value = if matches_any_type(partition_key_type, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
-        quote! {
-            AttributeValue::N(partition.to_string())
-        }
-    } else {
-        quote! {
-            AttributeValue::S(partition)
-        }
-    };
+    let partition_key_attribute_value = get_attribute_type(partition_key_type, Ident::new("partition", struct_name.span()));
 
     if let Some(range) = range_key_ident_and_type {
         let range_key_name = range.0.to_string();
         let range_key_type = range.1;
-        let range_key_attribute_value = if matches_any_type(range_key_type, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
-            quote! {
-                AttributeValue::N(range.to_string())
-            }
-        } else {
-            quote! {
-                AttributeValue::S(range)
-            }
-        };
+        let range_key_attribute_value = get_attribute_type(range_key_type, Ident::new("range", struct_name.span()));
 
         quote! {
             pub async fn get_by_partition_key(&self, partition: #partition_key_type) -> Result<Vec<#struct_name>, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::QueryError>> {
@@ -195,33 +178,15 @@ fn scan_method(struct_name: &Ident) -> proc_macro2::TokenStream {
     }
 }
 
-// TODO allow provisioned billing
 fn create_table_method(partition_key_ident_and_type: (&Ident, &Type), range_key_ident_and_type: Option<(&Ident, &Type)>) -> proc_macro2::TokenStream {
     let partition_key_name = partition_key_ident_and_type.0.to_string();
     let partition_key_type = partition_key_ident_and_type.1;
-    let partition_key_attribute_value = if matches_any_type(partition_key_type, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
-        quote! {
-            aws_sdk_dynamodb::model::ScalarAttributeType::N
-        }
-    } else {
-        quote! {
-            aws_sdk_dynamodb::model::ScalarAttributeType::S
-        }
-    };
+    let partition_key_attribute_value = get_scalar_attribute(partition_key_type);
 
     let ads_def = if let Some(range) = range_key_ident_and_type {
         let range_key_name = range.0.to_string();
         let range_key_type = range.1;
-        // TODO scalar type B
-        let range_key_attribute_value = if matches_any_type(range_key_type, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
-            quote! {
-                aws_sdk_dynamodb::model::ScalarAttributeType::N
-            }
-        } else {
-            quote! {
-                aws_sdk_dynamodb::model::ScalarAttributeType::S
-            }
-        };
+        let range_key_attribute_value = get_scalar_attribute(range_key_type);
 
         quote! {
             let ads = vec![
@@ -360,6 +325,35 @@ fn build_from_struct_for_hashmap(struct_name: &Ident, fields: &Punctuated<Field,
                 #(#hashmap_inserts)*
                 map
             }
+        }
+    }
+}
+
+fn get_attribute_type(key_type: &Type, name_of_attribute: Ident) -> proc_macro2::TokenStream {
+    if matches_any_type(key_type, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
+        quote! {
+            AttributeValue::N(#name_of_attribute.to_string())
+        }
+    } else {
+        quote! {
+            AttributeValue::S(#name_of_attribute)
+        }
+    }
+}
+
+fn get_scalar_attribute(key_type: &Type) -> proc_macro2::TokenStream {
+    if matches_any_type(key_type, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
+        quote! {
+            aws_sdk_dynamodb::model::ScalarAttributeType::N
+        }
+    } else if matches_type(key_type, "bool") {
+        quote! {
+            aws_sdk_dynamodb::model::ScalarAttributeType::B
+        }
+    }
+    else {
+        quote! {
+            aws_sdk_dynamodb::model::ScalarAttributeType::S
         }
     }
 }

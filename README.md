@@ -70,6 +70,7 @@ The create and delete table methods are appropriate for testing, pocs and smalle
 
 ## Improvements
 
+- allow provisioned billing in table creation
 - allow decision on pub visibility of methods (default pub)?
 - allow to disable generation of methods
 - current setup will set up a DynamoDB client for every helper struct, which is not very effective
