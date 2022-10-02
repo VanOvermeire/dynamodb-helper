@@ -2,9 +2,28 @@
 
 This crate provides a macro that will generate a struct for interacting with DynamoDB, without all the boilerplate that this normally entails.
 
+// compared with popular rust library for doing this (uses official sdk)
+
 ## Example Usage
 
-*still TODO, example from main maybe*
+```
+use dynamodb_helper::DynamoDb;
+
+#[derive(DynamoDb)]
+struct ExampleStruct {
+    #[partition]
+    id: String,
+}
+
+// thanks to the above derive, we can now create a db client
+let db = ExampleStructDb::build(aws_sdk_dynamodb::Region::new("eu-west-1"), "exampleTable").await;
+// alternatively: let db = ExampleStructDb::new(a_dynamodb_client, "exampleTable");
+
+// now we can use the helper to put, get, scan, query and delete
+
+// the following will return an ExampleStruct if the id is found
+let example_struct_result = db.get("someId".to_string()).await.expect("This one to exist");
+```
 
 Also see the unit and integration tests.
 
@@ -14,6 +33,8 @@ Note that you will need an AWS account, credentials and these dependencies (or h
 aws-config = "0.47.0"
 aws-sdk-dynamodb = "0.17.0"
 ```
+
+Be sure to check the important notes and details below for more usage info and an overview of attributes and methods.
 
 ## Important notes
 
@@ -56,6 +77,10 @@ It has the following methods:
 
 The create and delete table methods are appropriate for testing, pocs and smaller projects. For real applications it is probably better to create the tables as IAC and to pass the names to `new()` or `build()`.
 
+## PRs
+
+Pull requests with improvements or additional features are welcome. They should at the very least add integration tests for the new functionality - and pass the existing ones!
+
 ## TODO
 
 - support all values
@@ -76,7 +101,3 @@ The create and delete table methods are appropriate for testing, pocs and smalle
 - current setup will set up a DynamoDB client for every helper struct, which is not very effective
 - testing on unit level where necessary
 - automated setup with Github Actions
-
-## PRs
-
-Pull requests with improvements or additional features are welcome. They should at the very least add integration tests for the new functionality - and pass the existing ones!
