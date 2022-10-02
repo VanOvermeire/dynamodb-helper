@@ -6,7 +6,7 @@ use http::Uri;
 use dynamodb_helper::DynamoDb;
 use tokio_stream::StreamExt;
 
-#[derive(DynamoDb, Debug)]
+#[derive(DynamoDb, Debug, Clone)]
 pub struct OrderStruct {
     #[partition]
     pub an_id: String,
@@ -14,7 +14,7 @@ pub struct OrderStruct {
     pub total_amount: f32,
 }
 
-#[derive(DynamoDb, Debug)]
+#[derive(DynamoDb, Debug, Clone)]
 pub struct OrderStructWithRange {
     #[partition]
     pub an_id: String,
@@ -22,6 +22,23 @@ pub struct OrderStructWithRange {
     pub a_range: i32,
     pub name: String,
     pub total_amount: i32,
+}
+
+pub fn create_order_struct() -> OrderStruct {
+    OrderStruct {
+        an_id: "uid123".to_string(),
+        name: "Me".to_string(),
+        total_amount: 6.0,
+    }
+}
+
+pub fn create_order_struct_with_range() -> OrderStructWithRange {
+    OrderStructWithRange {
+        an_id: "uid123".to_string(),
+        a_range: 1000,
+        name: "Me".to_string(),
+        total_amount: 6,
+    }
 }
 
 pub async fn create_client() -> Client {
@@ -128,7 +145,7 @@ pub async fn get_order_struct(table: &str, client: &Client, id: &str) -> GetItem
         .expect("To be able to get a result")
 }
 
-pub async fn get_order_struct_with_range(table: &str, client: &Client, id: &str, range: i32) -> GetItemOutput {
+pub async fn get_order_struct_with_range(table: &str, client: &Client, id: &str, range: &i32) -> GetItemOutput {
     client.get_item()
         .table_name(table)
         .key("an_id".to_string(), AttributeValue::S(id.to_string()))

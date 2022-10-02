@@ -15,22 +15,17 @@ async fn should_be_able_to_put() {
     let put_table = "putTable";
     let client = create_client().await;
     let client_for_struct = create_client().await;
+    let example = create_order_struct();
 
     init_table(&client, put_table, "an_id", None).await;
 
-    let example = OrderStruct {
-        an_id: "uid123".to_string(),
-        name: "Me".to_string(),
-        total_amount: 6.0,
-    };
-
     let db = OrderStructDb::new(client_for_struct, put_table);
 
-    db.put(example)
+    db.put(example.clone())
         .await
         .expect("Put to work");
 
-    let result = get_order_struct(put_table, &client, "uid123").await;
+    let result = get_order_struct(put_table, &client, example.an_id.as_str()).await;
 
     destroy_table(&client, put_table).await;
 
@@ -42,23 +37,17 @@ async fn should_be_able_to_put_with_range_key() {
     let put_table = "putRangeTable";
     let client = create_client().await;
     let client_for_struct = create_client().await;
+    let example = create_order_struct_with_range();
 
     init_table(&client, put_table, "an_id", Some("a_range")).await;
 
-    let example = OrderStructWithRange {
-        an_id: "uid123".to_string(),
-        a_range: 1000,
-        name: "Me".to_string(),
-        total_amount: 6,
-    };
-
     let db = OrderStructWithRangeDb::new(client_for_struct, put_table);
 
-    db.put(example)
+    db.put(example.clone())
         .await
         .expect("Put to work");
 
-    let result = get_order_struct_with_range(put_table, &client, "uid123", 1000).await;
+    let result = get_order_struct_with_range(put_table, &client, example.an_id.as_str(), &example.a_range).await;
 
     destroy_table(&client, put_table).await;
 
@@ -70,14 +59,9 @@ async fn should_be_able_to_delete() {
     let delete_table = "deleteTable";
     let client = create_client().await;
     let client_for_struct = create_client().await;
+    let example = create_order_struct();
 
     init_table(&client, delete_table, "an_id", None).await;
-
-    let example = OrderStruct {
-        an_id: "uid123".to_string(),
-        name: "Me".to_string(),
-        total_amount: 6.0,
-    };
 
     put_order_struct(delete_table, &client, &example);
 
@@ -85,9 +69,7 @@ async fn should_be_able_to_delete() {
 
     db.delete(example.an_id.to_string()).await;
 
-    let result = get_order_struct(delete_table, &client, "uid123").await;
-
-    get_order_struct(delete_table, &client, "uid123");
+    let result = get_order_struct(delete_table, &client, example.an_id.as_str()).await;
 
     destroy_table(&client, delete_table).await;
 
@@ -99,23 +81,17 @@ async fn should_be_able_to_delete_with_range() {
     let delete_table = "deleteRangeTable";
     let client = create_client().await;
     let client_for_struct = create_client().await;
+    let example = create_order_struct_with_range();
 
     init_table(&client, delete_table, "an_id", Some("a_range")).await;
-
-    let example = OrderStructWithRange {
-        an_id: "uid123".to_string(),
-        a_range: 1000,
-        name: "Me".to_string(),
-        total_amount: 6,
-    };
 
     put_order_with_range_struct(delete_table, &client, &example);
 
     let db = OrderStructWithRangeDb::new(client_for_struct, delete_table);
 
-    db.delete(example.an_id, example.a_range).await;
+    db.delete(example.an_id.to_string(), example.a_range).await;
 
-    let result = get_order_struct_with_range(delete_table, &client, "uid123", 1000).await;
+    let result = get_order_struct_with_range(delete_table, &client, example.an_id.as_str(), &example.a_range).await;
 
     destroy_table(&client, delete_table).await;
 

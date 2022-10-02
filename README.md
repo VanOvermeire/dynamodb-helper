@@ -13,16 +13,33 @@ use dynamodb_helper::DynamoDb;
 struct ExampleStruct {
     #[partition]
     id: String,
+    // other values
 }
 
 // thanks to the above derive, we can now create a db client
 let db = ExampleStructDb::build(aws_sdk_dynamodb::Region::new("eu-west-1"), "exampleTable").await;
-// alternatively: let db = ExampleStructDb::new(a_dynamodb_client, "exampleTable");
-
-// now we can use the helper to put, get, scan, query and delete
 
 // the following will return an ExampleStruct if the id is found
-let example_struct_result = db.get("someId".to_string()).await.expect("This one to exist");
+let example_struct = db.get("someId".to_string()).await.expect("This one to exist");
+
+#[derive(DynamoDb)]
+struct OtherStruct {
+    #[partition]
+    id: String,
+    #[range]
+    range_id: String
+    // other values
+}
+
+// alternative to build, we can use new and pass in a client
+let other_db = OtherStructDb::new(a_dynamodb_client, "exampleTable");
+
+// now we need to pass in both parts of the id
+let other_struct = other_db.get("someId".to_string(), "someRange".to_string()).await.expect("This one to exist");
+// or only the partition id, in which case we'll get back a Vec
+let multiple_structs = other_db.get_by_partition_key("someId".to_string()).await.expect("This one to exist");
+
+// and you can also put, delete, scan, etc.
 ```
 
 Also see the unit and integration tests.
