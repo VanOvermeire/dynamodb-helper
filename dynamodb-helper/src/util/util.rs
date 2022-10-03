@@ -18,12 +18,30 @@ pub enum DynamoTypes {
     Null, // Null (bool)
 }
 
+pub enum DynamoScalarType {
+    Number,
+    String,
+    Boolean,
+}
+
 // TODO use this to pattern match and take the right action
-pub fn get_dynamo_type(typez: &Type) -> DynamoTypes {
+pub fn dynamo_type(typez: &Type) -> DynamoTypes {
     if matches_any_type(typez, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
         DynamoTypes::Number
+    } else if matches_type(typez, "bool") {
+        DynamoTypes::Boolean
     } else {
         DynamoTypes::String
+    }
+}
+
+pub fn scalar_dynamo_type(typez: &Type) -> DynamoScalarType {
+    if matches_any_type(typez, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
+        DynamoScalarType::Number
+    } else if matches_type(typez, "bool") {
+        DynamoScalarType::Boolean
+    } else {
+        DynamoScalarType::String
     }
 }
 

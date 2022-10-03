@@ -5,7 +5,6 @@ use aws_sdk_dynamodb::Client;
 use aws_sdk_dynamodb::output::GetItemOutput;
 use aws_sdk_dynamodb::types::SdkError;
 use http::Uri;
-use tokio_stream::StreamExt;
 
 mod util;
 use util::*;
@@ -63,11 +62,11 @@ async fn should_be_able_to_delete() {
 
     init_table(&client, delete_table, "an_id", None).await;
 
-    put_order_struct(delete_table, &client, &example);
+    put_order_struct(delete_table, &client, &example).await;
 
     let db = OrderStructDb::new(client_for_struct, delete_table);
 
-    db.delete(example.an_id.to_string()).await;
+    db.delete(example.an_id.to_string()).await.expect("Delete to work");
 
     let result = get_order_struct(delete_table, &client, example.an_id.as_str()).await;
 
@@ -85,11 +84,11 @@ async fn should_be_able_to_delete_with_range() {
 
     init_table(&client, delete_table, "an_id", Some("a_range")).await;
 
-    put_order_with_range_struct(delete_table, &client, &example);
+    put_order_with_range_struct(delete_table, &client, &example).await;
 
     let db = OrderStructWithRangeDb::new(client_for_struct, delete_table);
 
-    db.delete(example.an_id.to_string(), example.a_range).await;
+    db.delete(example.an_id.to_string(), example.a_range).await.expect("Delete to work");
 
     let result = get_order_struct_with_range(delete_table, &client, example.an_id.as_str(), &example.a_range).await;
 

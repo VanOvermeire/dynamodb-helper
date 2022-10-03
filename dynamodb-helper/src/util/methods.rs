@@ -1,7 +1,7 @@
 use quote::quote;
 use quote::__private::Ident;
 use syn::{Type};
-use crate::{matches_any_type, matches_type, ALL_NUMERIC_TYPES_AS_STRINGS};
+use crate::{dynamo_type, scalar_dynamo_type, DynamoTypes, DynamoScalarType};
 
 pub fn new_method(helper_ident: &Ident) -> proc_macro2::TokenStream {
     quote! {
@@ -231,30 +231,37 @@ pub fn delete_table_method() -> proc_macro2::TokenStream {
 }
 
 fn get_attribute_type(key_type: &Type, name_of_attribute: Ident) -> proc_macro2::TokenStream {
-    if matches_any_type(key_type, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
-        quote! {
-            AttributeValue::N(#name_of_attribute.to_string())
-        }
-    } else {
-        quote! {
-            AttributeValue::S(#name_of_attribute)
-        }
+    match dynamo_type(key_type) {
+        DynamoTypes::String => {
+            quote! {
+                AttributeValue::S(#name_of_attribute)
+            }
+        },
+        DynamoTypes::Number => {
+            quote! {
+                AttributeValue::N(#name_of_attribute.to_string())
+            }
+        },
+        _ => unimplemented!("Unimplemented type")
     }
 }
 
 fn get_scalar_attribute(key_type: &Type) -> proc_macro2::TokenStream {
-    if matches_any_type(key_type, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
-        quote! {
-            aws_sdk_dynamodb::model::ScalarAttributeType::N
-        }
-    } else if matches_type(key_type, "bool") {
-        quote! {
-            aws_sdk_dynamodb::model::ScalarAttributeType::B
-        }
-    }
-    else {
-        quote! {
-            aws_sdk_dynamodb::model::ScalarAttributeType::S
+    match scalar_dynamo_type(key_type) {
+        DynamoScalarType::String => {
+            quote! {
+                aws_sdk_dynamodb::model::ScalarAttributeType::S
+            }
+        },
+        DynamoScalarType::Number => {
+            quote! {
+                aws_sdk_dynamodb::model::ScalarAttributeType::N
+            }
+        },
+        DynamoScalarType::Boolean => {
+            quote! {
+                aws_sdk_dynamodb::model::ScalarAttributeType::B
+            }
         }
     }
 }

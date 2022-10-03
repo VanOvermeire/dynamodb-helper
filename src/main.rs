@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use aws_sdk_dynamodb::Client;
-use aws_sdk_dynamodb::model::AttributeValue;
+use aws_sdk_dynamodb::model::{AttributeValue};
 use dynamodb_helper::DynamoDb;
 use tokio_stream::StreamExt;
 

@@ -1,6 +1,5 @@
 mod util;
 use util::*;
-use tokio_stream::StreamExt;
 
 #[tokio::test]
 async fn should_be_able_to_create_a_table() {
@@ -10,7 +9,7 @@ async fn should_be_able_to_create_a_table() {
 
     let db = OrderStructWithRangeDb::new(client_for_struct, create_table);
 
-    db.create_table().await;
+    db.create_table().await.expect("Create table to work");
 
     let results = client.list_tables()
         .send()
@@ -32,7 +31,7 @@ async fn should_be_able_to_delete_a_table() {
 
     let db = OrderStructDb::new(client_for_struct, delete_table);
 
-    db.delete_table().await;
+    db.delete_table().await.expect("Delete table to work");
 
     let results = client.list_tables()
         .send()

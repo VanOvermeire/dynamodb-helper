@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use aws_sdk_dynamodb::{Client, Endpoint};
-use aws_sdk_dynamodb::model::{AttributeDefinition, AttributeValue, BillingMode, KeySchemaElement, KeyType, ProvisionedThroughput, ScalarAttributeType};
+use aws_sdk_dynamodb::model::{AttributeDefinition, AttributeValue, BillingMode, KeySchemaElement, KeyType, ScalarAttributeType};
 use aws_sdk_dynamodb::output::GetItemOutput;
 use http::Uri;
 use dynamodb_helper::DynamoDb;
