@@ -23,6 +23,7 @@ pub struct OrderStructWithRange {
     pub a_range: i32,
     pub name: String,
     pub total_amount: i32,
+    pub names: Vec<String>,
 }
 
 pub fn create_order_struct() -> OrderStruct {
@@ -30,7 +31,7 @@ pub fn create_order_struct() -> OrderStruct {
         an_id: "uid123".to_string(),
         name: "Me".to_string(),
         total_amount: 6.0,
-        a_boolean: false
+        a_boolean: false,
     }
 }
 
@@ -40,6 +41,7 @@ pub fn create_order_struct_with_range() -> OrderStructWithRange {
         a_range: 1000,
         name: "Me".to_string(),
         total_amount: 6,
+        names: vec!["a name".to_string()],
     }
 }
 
@@ -133,6 +135,7 @@ pub async fn put_order_with_range_struct(table: &str, client: &Client, example: 
             ("a_range".to_string(), AttributeValue::N(example.a_range.to_string())),
             ("name".to_string(), AttributeValue::S(example.name.to_string())),
             ("total_amount".to_string(), AttributeValue::N(example.total_amount.to_string())),
+            ("names".to_string(), AttributeValue::Ss(example.names.clone())),
         ])))
         .send()
         .await

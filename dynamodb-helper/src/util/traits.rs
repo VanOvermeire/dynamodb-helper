@@ -26,8 +26,9 @@ pub fn build_from_hashmap_for_struct(struct_name: &Ident, fields: &Punctuated<Fi
                 }
             },
             DynamoTypes::StringSet => {
+                // TODO clone is not ideal (but might go for a default of list anyway...)
                 quote! {
-                    #name: map.get(#name_as_string).map(|v| v.as_ss().expect("Attribute value conversion to work")).expect("Value for struct property to be present"),
+                    #name: map.get(#name_as_string).map(|v| v.as_ss().expect("Attribute value conversion to work")).map(|v| v.clone()).expect("Value for struct property to be present"),
                 }
             },
             DynamoTypes::NumberSet => {

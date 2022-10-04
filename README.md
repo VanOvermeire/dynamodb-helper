@@ -103,6 +103,7 @@ Pull requests with improvements or additional features are welcome. They should 
 
 - support all values (now just numbers, strings and boolean partially)
   - allow override of type (overlap between set and list) 
+  - string sets can't be empty, so list seems like a better default
 - batch write
 - batch read
 - handle pagination (for query and batch)
