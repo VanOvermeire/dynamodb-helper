@@ -95,6 +95,22 @@ It has the following methods:
 
 The create and delete table methods are appropriate for testing, pocs and smaller projects. For real applications it is probably better to create the tables as IAC and to pass the names to `new()` or `build()`.
 
+### Supported types
+
+Within your struct you can use the following types
+- Numbers
+- Strings
+- Booleans
+- Vec<String>
+- Vec<Number>
+- Vec<bool>
+
+Do note that DynamoDB only supports strings, numbers and booleans for key types.
+
+### Other notes on types
+
+You can't currently save as string or number *sets*.
+
 ## PRs
 
 Pull requests with improvements or additional features are welcome. They should at the very least add integration tests for the new functionality - and pass the existing ones!
@@ -102,8 +118,6 @@ Pull requests with improvements or additional features are welcome. They should 
 ## TODO
 
 - support all values (now just numbers, strings and boolean partially)
-  - allow override of type (overlap between set and list) 
-  - string sets can't be empty, so list seems like a better default
 - batch write
 - batch read
 - handle pagination (for query and batch)

@@ -86,6 +86,7 @@ async fn should_be_able_to_get_from_dynamo_only_using_partition_part() {
         total_amount: 7,
         names: vec!["two".to_string()]
     };
+
     init_table(&client, get_table, "an_id", Some("a_range")).await;
 
     let db = OrderStructWithRangeDb::new(client_for_struct, get_table);

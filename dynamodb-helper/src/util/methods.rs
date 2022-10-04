@@ -247,14 +247,14 @@ fn get_attribute_type(key_type: &Type, name_of_attribute: Ident) -> proc_macro2:
                 AttributeValue::Bool(#name_of_attribute)
             }
         },
-        DynamoTypes::StringSet => {
+        DynamoTypes::StringList => {
             quote! {
-                AttributeValue::Ss(#name_of_attribute)
+                AttributeValue::L(#name_of_attribute)
             }
         },
-        DynamoTypes::NumberSet => {
+        DynamoTypes::NumberList => {
             quote! {
-                AttributeValue::Ns(#name_of_attribute)
+                AttributeValue::L(#name_of_attribute)
             }
         },
         _ => unimplemented!("Unimplemented type")

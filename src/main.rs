@@ -50,11 +50,13 @@ async fn main() {
         partition_key: String,
         val: bool,
     }
+    let t: Vec<String> = AttributeValue::L(vec![AttributeValue::S("s".to_string())]).as_l().expect("to work")
+        .iter().map(|v| v.as_s().expect("To work")).map(|v| v.clone()).collect();
     // let e = ExampleStruct {
     //     partition_key: "".to_string(),
     //     val: false,
     // };
-    // let t: bool = AttributeValue::Bool(false).as_bool().map(|b| *b).expect("lol");
+    let t: bool = AttributeValue::Bool(false).as_bool().map(|b| *b).expect("lol");
     // let map: HashMap<String, AttributeValue> = e.into();
 }
 

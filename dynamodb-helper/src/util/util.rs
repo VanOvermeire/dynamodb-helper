@@ -8,12 +8,15 @@ pub const ALL_NUMERIC_TYPES_AS_STRINGS: &'static [&'static str] = &["u8", "u16",
 
 pub enum DynamoTypes {
     Number,
-    NumberSet, // Ns ["42.2", "-19", "7.5", "3.14"] -> pass as Vec<String>, is Vec<Number>
-    String,
-    StringSet, // Ss ["Giraffe", "Hippo" ,"Zebra"] -> so Vec<String>
-    Boolean, // Bool
+    Boolean,
+    StringList,
+    NumberList,
+    // TODO boolean list
     List, // L [ {"S": "Cookies"} , {"S": "Coffee"}, {"N": "3.14159"}]
     Map, // M {"Name": {"S": "Joe"}, "Age": {"N": "35"}}, pass as Hashmap String AttributeValue
+    String,
+    StringSet,
+    NumberSet,
     // Binary,
     // BinarySet,
     // Null, // = Null(bool)
@@ -24,13 +27,13 @@ pub enum DynamoScalarType {
     String,
     Boolean,
 }
-// TODO handle these two new ones
+
 pub fn dynamo_type(typez: &syn::Type) -> DynamoTypes {
     let vec_nums: Vec<String> = ALL_NUMERIC_TYPES_AS_STRINGS.to_vec().iter().map(|num| format!("Vec{}", num)).collect();
     if matches_any_type(typez, vec_nums.iter().map(|s| &s as &str).collect()) {
-        DynamoTypes::NumberSet
+        DynamoTypes::NumberList
     } else if matches_type(typez, "VecString") { // what about Vec&str?
-        DynamoTypes::StringSet
+        DynamoTypes::StringList
     } else if matches_any_type(typez, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
         DynamoTypes::Number
     } else if matches_type(typez, "bool") {

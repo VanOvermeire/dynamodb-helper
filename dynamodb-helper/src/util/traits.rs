@@ -25,13 +25,12 @@ pub fn build_from_hashmap_for_struct(struct_name: &Ident, fields: &Punctuated<Fi
                     #name: map.get(#name_as_string).map(|v| *v.as_bool().expect("Attribute value conversion to work")).expect("Value for struct property to be present"),
                 }
             },
-            DynamoTypes::StringSet => {
-                // TODO clone is not ideal (but might go for a default of list anyway...)
+            DynamoTypes::StringList => {
                 quote! {
-                    #name: map.get(#name_as_string).map(|v| v.as_ss().expect("Attribute value conversion to work")).map(|v| v.clone()).expect("Value for struct property to be present"),
+                    #name: map.get(#name_as_string).map(|v| v.as_l().expect("Attribute value conversion to work")).expect("Value for struct property to be present").iter().map(|v| v.as_s().expect("Attribute value conversion to work")).map(|v| v.clone()).collect(),
                 }
             },
-            DynamoTypes::NumberSet => {
+            DynamoTypes::NumberList => {
                 quote! {
                     #name: map.get(#name_as_string).map(|v| v.as_ns().expect("Attribute value conversion to work")).expect("Value for struct property to be present").iter().map(|v| str::parse(v)).collect(),
                 }
@@ -80,12 +79,12 @@ pub fn build_from_struct_for_hashmap(struct_name: &Ident, fields: &Punctuated<Fi
                     map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::Bool(input.#name));
                 }
             },
-            DynamoTypes::StringSet => {
+            DynamoTypes::StringList => {
                 quote! {
-                    map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::Ss(input.#name));
+                    map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::L(input.#name.into_iter().map(|v| AttributeValue::S(v)).collect()));
                 }
             },
-            DynamoTypes::NumberSet => {
+            DynamoTypes::NumberList => {
                 quote! {
                     map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::Ns(input.#name));
                 }

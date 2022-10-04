@@ -135,7 +135,7 @@ pub async fn put_order_with_range_struct(table: &str, client: &Client, example: 
             ("a_range".to_string(), AttributeValue::N(example.a_range.to_string())),
             ("name".to_string(), AttributeValue::S(example.name.to_string())),
             ("total_amount".to_string(), AttributeValue::N(example.total_amount.to_string())),
-            ("names".to_string(), AttributeValue::Ss(example.names.clone())),
+            ("names".to_string(), AttributeValue::L(example.names.iter().map(|v| v.clone()).map(|v| AttributeValue::S(v)).collect())),
         ])))
         .send()
         .await
