@@ -102,6 +102,7 @@ Pull requests with improvements or additional features are welcome. They should 
 ## TODO
 
 - support all values (now just numbers, strings and boolean partially)
+  - allow override of type (overlap between set and list) 
 - batch write
 - batch read
 - handle pagination (for query and batch)
