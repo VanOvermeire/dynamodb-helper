@@ -48,7 +48,14 @@ async fn main() {
     pub struct ExampleStruct {
         #[partition]
         partition_key: String,
+        val: bool,
     }
+    // let e = ExampleStruct {
+    //     partition_key: "".to_string(),
+    //     val: false,
+    // };
+    // let t: bool = AttributeValue::Bool(false).as_bool().map(|b| *b).expect("lol");
+    // let map: HashMap<String, AttributeValue> = e.into();
 }
 
 #[cfg(test)]

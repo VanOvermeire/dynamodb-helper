@@ -15,12 +15,26 @@ pub fn build_from_hashmap_for_struct(struct_name: &Ident, fields: &Punctuated<Fi
                     #name: map.get(#name_as_string).map(|v| v.as_s().expect("Attribute value conversion to work")).map(|v| v.to_string()).expect("Value for struct property to be present"),
                 }
             },
-            // TODO bool will be very similar to this one
             DynamoTypes::Number => {
                 quote! {
                     #name: map.get(#name_as_string).map(|v| v.as_n().expect("Attribute value conversion to work")).map(|v| str::parse(v).expect("To be able to parse a number from Dynamo")).expect("Value for struct property to be present"),
                 }
-            }
+            },
+            DynamoTypes::Boolean => {
+                quote! {
+                    #name: map.get(#name_as_string).map(|v| *v.as_bool().expect("Attribute value conversion to work")).expect("Value for struct property to be present"),
+                }
+            },
+            DynamoTypes::StringSet => {
+                quote! {
+                    #name: map.get(#name_as_string).map(|v| v.as_ss().expect("Attribute value conversion to work")).expect("Value for struct property to be present"),
+                }
+            },
+            DynamoTypes::NumberSet => {
+                quote! {
+                    #name: map.get(#name_as_string).map(|v| v.as_ns().expect("Attribute value conversion to work")).expect("Value for struct property to be present").iter().map(|v| str::parse(v)).collect(),
+                }
+            },
             _ => unimplemented!("Unimplemented type")
         }
     });
@@ -58,6 +72,21 @@ pub fn build_from_struct_for_hashmap(struct_name: &Ident, fields: &Punctuated<Fi
             DynamoTypes::Number => {
                 quote! {
                     map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::N(input.#name.to_string()));
+                }
+            },
+            DynamoTypes::Boolean => {
+                quote! {
+                    map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::Bool(input.#name));
+                }
+            },
+            DynamoTypes::StringSet => {
+                quote! {
+                    map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::Ss(input.#name));
+                }
+            },
+            DynamoTypes::NumberSet => {
+                quote! {
+                    map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::Ns(input.#name));
                 }
             },
             _ => unimplemented!("Unimplemented type")

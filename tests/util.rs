@@ -12,6 +12,7 @@ pub struct OrderStruct {
     pub an_id: String,
     pub name: String,
     pub total_amount: f32,
+    pub a_boolean: bool,
 }
 
 #[derive(DynamoDb, Debug, Clone)]
@@ -29,6 +30,7 @@ pub fn create_order_struct() -> OrderStruct {
         an_id: "uid123".to_string(),
         name: "Me".to_string(),
         total_amount: 6.0,
+        a_boolean: false
     }
 }
 
@@ -116,6 +118,7 @@ pub async fn put_order_struct(table: &str, client: &Client, struc: &OrderStruct)
             ("an_id".to_string(), AttributeValue::S(struc.an_id.to_string())),
             ("name".to_string(), AttributeValue::S(struc.name.to_string())),
             ("total_amount".to_string(), AttributeValue::N(struc.total_amount.to_string())),
+            ("a_boolean".to_string(), AttributeValue::Bool(struc.a_boolean)),
         ])))
         .send()
         .await

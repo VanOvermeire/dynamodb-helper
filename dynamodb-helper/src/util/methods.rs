@@ -242,6 +242,21 @@ fn get_attribute_type(key_type: &Type, name_of_attribute: Ident) -> proc_macro2:
                 AttributeValue::N(#name_of_attribute.to_string())
             }
         },
+        DynamoTypes::Boolean => {
+            quote! {
+                AttributeValue::Bool(#name_of_attribute)
+            }
+        },
+        DynamoTypes::StringSet => {
+            quote! {
+                AttributeValue::Ss(#name_of_attribute)
+            }
+        },
+        DynamoTypes::NumberSet => {
+            quote! {
+                AttributeValue::Ns(#name_of_attribute)
+            }
+        },
         _ => unimplemented!("Unimplemented type")
     }
 }
