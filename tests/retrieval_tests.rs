@@ -107,6 +107,65 @@ async fn should_be_able_to_get_from_dynamo_only_using_partition_part() {
 }
 
 #[tokio::test]
+async fn should_be_able_to_get_multiple_items() {
+    let get_table = "batchGetTable";
+    let client = create_client().await;
+    let client_for_struct = create_client().await;
+    let example = create_order_struct();
+
+    init_table(&client, get_table, "an_id", None).await;
+
+    put_order_struct(get_table, &client, &example).await;
+
+    let db = OrderStructDb::new(client_for_struct, get_table);
+
+    let result = db.batch_get(vec![example.an_id])
+        .await
+        .expect("Batch get to succeed");
+
+    destroy_table(&client, get_table).await;
+
+    assert_eq!(result.len(), 1);
+}
+
+#[tokio::test]
+async fn should_be_able_to_get_multiple_items_with_range_key() {
+    let get_table = "batchGetRangeTable";
+    let client = create_client().await;
+    let client_for_struct = create_client().await;
+    let example = OrderStructWithRange {
+        an_id: "uid123".to_string(),
+        a_range: 1000,
+        name: "Me".to_string(),
+        total_amount: 6,
+        names: vec!["one".to_string()]
+    };
+    let second_example = OrderStructWithRange {
+        an_id: "uid123".to_string(),
+        a_range: 1001,
+        name: "You".to_string(),
+        total_amount: 7,
+        names: vec!["two".to_string()]
+    };
+
+    init_table(&client, get_table, "an_id", Some("a_range")).await;
+
+    let db = OrderStructWithRangeDb::new(client_for_struct, get_table);
+
+    put_order_with_range_struct(get_table, &client, &example).await;
+    put_order_with_range_struct(get_table, &client, &second_example).await;
+
+    let result = db.batch_get(vec![(example.an_id, example.a_range), (second_example.an_id, second_example.a_range)])
+        .await
+        .expect("Batch get to succeed");
+
+    destroy_table(&client, get_table).await;
+
+    assert_eq!(result.len(), 2);
+    assert_eq!(result.iter().map(|v| v.name.to_string()).collect::<Vec<String>>(), vec!["Me", "You"]);
+}
+
+#[tokio::test]
 async fn should_be_able_to_scan_dynamo() {
     let scan_table = "myScanTable";
     let client = create_client().await;

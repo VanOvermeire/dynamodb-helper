@@ -89,6 +89,7 @@ It has the following methods:
 - `deleteTable()`
 - `get()`
 - `get_by_partition_key()` when you have a complex key (partition plus range)
+- `batch_get()`
 - `scan()`
 - `put()`
 - `delete()`
@@ -117,19 +118,20 @@ Pull requests with improvements or additional features are welcome. They should 
 
 ## TODO
 
-- support all values (now just numbers, strings and boolean partially)
+- support maps
 - batch write
-- batch read
 - handle pagination (for query and batch)
 - own error handling
     - less use of expect, more Result
     - and also tryfrom instead of from
+- fix TODO's in code
 
 ## Improvements
 
+- support complex values
 - help for query calls?
 - allow provisioned billing in table creation
-- allow decision on pub visibility of methods (default pub)?
+- allow decision on pub visibility of methods (default pub)
 - allow to disable generation of methods
 - current setup will set up a DynamoDB client for every helper struct, which is not very effective
 - testing on unit level where necessary

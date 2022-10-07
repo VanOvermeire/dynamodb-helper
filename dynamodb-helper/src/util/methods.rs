@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use quote::quote;
 use quote::__private::Ident;
 use syn::{Type};
@@ -126,6 +127,88 @@ pub fn get_methods(struct_name: &Ident, partition_key_ident_and_type: (&Ident, &
     }
 }
 
+// TODO try to get rid of the responses clone
+pub fn batch_get(struct_name: &Ident, partition_key_ident_and_type: (&Ident, &Type), range_key_ident_and_type: Option<(&Ident, &Type)>) -> proc_macro2::TokenStream {
+    let partition_key_name = partition_key_ident_and_type.0.to_string();
+    let partition_key_type = partition_key_ident_and_type.1;
+    let partition_key_attribute_value = get_attribute_type(partition_key_type, Ident::new("partition", struct_name.span()));
+
+    if let Some(range) = range_key_ident_and_type {
+        let range_key_name = range.0.to_string();
+        let range_key_type = range.1;
+        let range_key_attribute_value = get_attribute_type(range_key_type, Ident::new("range", struct_name.span()));
+
+        quote! {
+            pub async fn batch_get(&self, keys: Vec<(#partition_key_type, #range_key_type)>) -> Result<Vec<#struct_name>, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::BatchGetItemError>> {
+                let mapped_keys: Vec<HashMap<String, AttributeValue>> = keys.into_iter().map(|(partition, range)| {
+                    HashMap::from([
+                        (#partition_key_name.to_string(), #partition_key_attribute_value),
+                        (#range_key_name.to_string(), #range_key_attribute_value),
+                    ])
+                }).collect();
+
+                let attrs = aws_sdk_dynamodb::model::KeysAndAttributes::builder()
+                    .set_keys(Some(mapped_keys))
+                    .build();
+
+                let mut table_map = HashMap::from([
+                    (self.table.to_string(), attrs)
+                ]);
+
+                let result = &self.client.batch_get_item()
+                    .set_request_items(Some(table_map))
+                    .send()
+                    .await?;
+
+                let mapped_result = result.responses.clone().map(|mut v| {
+                    let items_found = v.remove(self.table.as_str()).unwrap_or_else(|| vec![]);
+
+                    items_found
+                    .iter()
+                    .map(|r| r.into())
+                    .collect()
+                }).unwrap_or_else(|| vec![]);
+
+                Ok(mapped_result)
+            }
+        }
+    } else {
+        quote! {
+            pub async fn batch_get(&self, keys: Vec<#partition_key_type>) -> Result<Vec<#struct_name>, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::BatchGetItemError>> {
+                let mapped_keys: Vec<HashMap<String, AttributeValue>> = keys.into_iter().map(|partition| {
+                    HashMap::from([
+                        (#partition_key_name.to_string(), #partition_key_attribute_value)
+                    ])
+                }).collect();
+
+                let attrs = aws_sdk_dynamodb::model::KeysAndAttributes::builder()
+                    .set_keys(Some(mapped_keys))
+                    .build();
+
+                let mut table_map = HashMap::from([
+                    (self.table.to_string(), attrs)
+                ]);
+
+                let result = &self.client.batch_get_item()
+                    .set_request_items(Some(table_map))
+                    .send()
+                    .await?;
+
+                let mapped_result = result.responses.clone().map(|mut v| {
+                    let items_found = v.remove(self.table.as_str()).unwrap_or_else(|| vec![]);
+
+                    items_found
+                    .iter()
+                    .map(|r| r.into())
+                    .collect()
+                }).unwrap_or_else(|| vec![]);
+
+                Ok(mapped_result)
+            }
+        }
+    }
+}
+
 pub fn scan_method(struct_name: &Ident) -> proc_macro2::TokenStream {
     quote! {
         pub async fn scan(&self) -> Result<Vec<#struct_name>, aws_sdk_dynamodb::error::ScanError> {
@@ -236,27 +319,27 @@ fn get_attribute_type(key_type: &Type, name_of_attribute: Ident) -> proc_macro2:
             quote! {
                 AttributeValue::S(#name_of_attribute)
             }
-        },
+        }
         DynamoTypes::Number => {
             quote! {
                 AttributeValue::N(#name_of_attribute.to_string())
             }
-        },
+        }
         DynamoTypes::Boolean => {
             quote! {
                 AttributeValue::Bool(#name_of_attribute)
             }
-        },
+        }
         DynamoTypes::StringList => {
             quote! {
                 AttributeValue::L(#name_of_attribute)
             }
-        },
+        }
         DynamoTypes::NumberList => {
             quote! {
                 AttributeValue::L(#name_of_attribute)
             }
-        },
+        }
         _ => unimplemented!("Unimplemented type")
     }
 }
@@ -267,12 +350,12 @@ fn get_scalar_attribute(key_type: &Type) -> proc_macro2::TokenStream {
             quote! {
                 aws_sdk_dynamodb::model::ScalarAttributeType::S
             }
-        },
+        }
         DynamoScalarType::Number => {
             quote! {
                 aws_sdk_dynamodb::model::ScalarAttributeType::N
             }
-        },
+        }
         DynamoScalarType::Boolean => {
             quote! {
                 aws_sdk_dynamodb::model::ScalarAttributeType::B
