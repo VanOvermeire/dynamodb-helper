@@ -15,8 +15,8 @@ pub enum DynamoTypes {
     List, // L [ {"S": "Cookies"} , {"S": "Coffee"}, {"N": "3.14159"}]
     Map, // M {"Name": {"S": "Joe"}, "Age": {"N": "35"}}, pass as Hashmap String AttributeValue
     String,
-    StringSet,
-    NumberSet,
+    // StringSet,
+    // NumberSet,
     // Binary,
     // BinarySet,
     // Null, // = Null(bool)

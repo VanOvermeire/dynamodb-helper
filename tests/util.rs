@@ -13,6 +13,7 @@ pub struct OrderStruct {
     pub name: String,
     pub total_amount: f32,
     pub a_boolean: bool,
+    pub numbers: Vec<i16>,
 }
 
 #[derive(DynamoDb, Debug, Clone)]
@@ -32,6 +33,7 @@ pub fn create_order_struct() -> OrderStruct {
         name: "Me".to_string(),
         total_amount: 6.0,
         a_boolean: false,
+        numbers: vec![1, 2]
     }
 }
 
@@ -121,6 +123,7 @@ pub async fn put_order_struct(table: &str, client: &Client, struc: &OrderStruct)
             ("name".to_string(), AttributeValue::S(struc.name.to_string())),
             ("total_amount".to_string(), AttributeValue::N(struc.total_amount.to_string())),
             ("a_boolean".to_string(), AttributeValue::Bool(struc.a_boolean)),
+            ("numbers".to_string(), AttributeValue::L(struc.numbers.iter().map(|v| AttributeValue::N(v.to_string())).collect())),
         ])))
         .send()
         .await

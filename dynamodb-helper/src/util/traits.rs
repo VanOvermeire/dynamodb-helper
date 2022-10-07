@@ -32,7 +32,7 @@ pub fn build_from_hashmap_for_struct(struct_name: &Ident, fields: &Punctuated<Fi
             },
             DynamoTypes::NumberList => {
                 quote! {
-                    #name: map.get(#name_as_string).map(|v| v.as_ns().expect("Attribute value conversion to work")).expect("Value for struct property to be present").iter().map(|v| str::parse(v)).collect(),
+                    #name: map.get(#name_as_string).map(|v| v.as_l().expect("Attribute value conversion to work")).expect("Value for struct property to be present").iter().map(|v| v.as_n().expect("Attribute value conversion to work")).map(|v| str::parse(v).expect("To be able to parse a number from Dynamo")).collect(),
                 }
             },
             _ => unimplemented!("Unimplemented type")
@@ -86,7 +86,7 @@ pub fn build_from_struct_for_hashmap(struct_name: &Ident, fields: &Punctuated<Fi
             },
             DynamoTypes::NumberList => {
                 quote! {
-                    map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::Ns(input.#name));
+                    map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::L(input.#name.into_iter().map(|v| AttributeValue::N(v.to_string())).collect()));
                 }
             },
             _ => unimplemented!("Unimplemented type")

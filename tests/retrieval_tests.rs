@@ -36,6 +36,7 @@ async fn should_be_able_to_get_from_dynamo() {
     assert_eq!(result.name, example.name);
     assert_eq!(result.total_amount, example.total_amount);
     assert_eq!(result.a_boolean, example.a_boolean);
+    assert_eq!(result.numbers, example.numbers);
 }
 
 #[tokio::test]
@@ -114,13 +115,15 @@ async fn should_be_able_to_scan_dynamo() {
         an_id: "uid1234".to_string(),
         name: "Me".to_string(),
         total_amount: 5.0,
-        a_boolean: true
+        a_boolean: true,
+        numbers: vec![]
     };
     let second_example = OrderStruct {
         an_id: "uid1235".to_string(),
         name: "You".to_string(),
         total_amount: 7.5,
-        a_boolean: false
+        a_boolean: false,
+        numbers: vec![]
     };
 
     init_table(&client, scan_table, "an_id", None).await;
