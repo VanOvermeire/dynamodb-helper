@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use quote::quote;
 use quote::__private::Ident;
 use syn::{Type};
@@ -206,6 +205,35 @@ pub fn batch_get(struct_name: &Ident, partition_key_ident_and_type: (&Ident, &Ty
                 Ok(mapped_result)
             }
         }
+    }
+}
+
+pub fn batch_put_method(struct_name: &Ident) -> proc_macro2::TokenStream {
+    quote! {
+            pub async fn batch_put(&self, items: Vec<#struct_name>) -> Result<aws_sdk_dynamodb::output::BatchWriteItemOutput, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::BatchWriteItemError>> {
+                let items_as_maps: Vec<HashMap<String, aws_sdk_dynamodb::model::AttributeValue>> = items.into_iter()
+                    .map(|i| i.into())
+                    .collect();
+
+                let requests: Vec<aws_sdk_dynamodb::model::WriteRequest> = items_as_maps.into_iter()
+                    .map(|m| {
+                        aws_sdk_dynamodb::model::WriteRequest::builder()
+                            .put_request(aws_sdk_dynamodb::model::PutRequest::builder()
+                                .set_item(Some(m))
+                                .build())
+                            .build()
+                    })
+                    .collect();
+
+                let mut requests_per_table = HashMap::new();
+                requests_per_table.insert(self.table.to_string(), requests);
+
+                self.client
+                    .batch_write_item()
+                    .set_request_items(Some(requests_per_table))
+                    .send()
+                    .await
+            }
     }
 }
 

@@ -39,6 +39,7 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
     let gets = get_methods(&name, partition_key_ident_and_type, range_key_ident_and_type);
     let batch_get = batch_get(&name, partition_key_ident_and_type, range_key_ident_and_type);
     let put = put_method(&name);
+    let batch_put = batch_put_method(&name);
     let delete = delete_method(&name, partition_key_ident_and_type, range_key_ident_and_type);
     let scan = scan_method(&name);
 
@@ -61,6 +62,7 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
             #put
             #gets
             #batch_get
+            #batch_put
             #delete
             #scan
         }

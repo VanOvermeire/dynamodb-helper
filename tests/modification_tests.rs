@@ -1,11 +1,3 @@
-use std::collections::HashMap;
-use aws_sdk_dynamodb::model::{AttributeValue};
-use std::iter::Iterator;
-use aws_sdk_dynamodb::Client;
-use aws_sdk_dynamodb::output::GetItemOutput;
-use aws_sdk_dynamodb::types::SdkError;
-use http::Uri;
-
 mod util;
 use util::*;
 
@@ -51,6 +43,65 @@ async fn should_be_able_to_put_with_range_key() {
     destroy_table(&client, put_table).await;
 
     assert!(result.item().is_some());
+}
+
+#[tokio::test]
+async fn should_be_able_to_batch_put() {
+    let put_table = "batchPutTable";
+    let client = create_client().await;
+    let client_for_struct = create_client().await;
+    let example = create_order_struct();
+
+    let db = OrderStructDb::new(client_for_struct, put_table);
+
+    init_table(&client, put_table, "an_id", None).await;
+
+    db.batch_put(vec![example.clone()])
+        .await
+        .expect("Batch put to work");
+
+    let result = get_order_struct(put_table, &client, example.an_id.as_str()).await;
+
+    destroy_table(&client, put_table).await;
+
+    assert!(result.item().is_some());
+}
+
+#[tokio::test]
+async fn should_be_able_to_batch_put_with_range() {
+    let put_table = "batchPutRangeTable";
+    let client = create_client().await;
+    let client_for_struct = create_client().await;
+    let example = OrderStructWithRange {
+        an_id: "uid123".to_string(),
+        a_range: 1000,
+        name: "Me".to_string(),
+        total_amount: 6,
+        names: vec!["one".to_string()]
+    };
+    let second_example = OrderStructWithRange {
+        an_id: "uid123".to_string(),
+        a_range: 1001,
+        name: "You".to_string(),
+        total_amount: 7,
+        names: vec!["two".to_string()]
+    };
+
+    init_table(&client, put_table, "an_id", Some("a_range")).await;
+
+    let db = OrderStructWithRangeDb::new(client_for_struct, put_table);
+
+    db.batch_put(vec![example.clone(), second_example.clone()])
+        .await
+        .expect("Batch put to work");
+
+    let result = get_order_struct_with_range(put_table, &client, example.an_id.as_str(), &example.a_range).await;
+    let second_result = get_order_struct_with_range(put_table, &client, second_example.an_id.as_str(), &second_example.a_range).await;
+
+    destroy_table(&client, put_table).await;
+
+    assert!(result.item().is_some());
+    assert!(second_result.item().is_some());
 }
 
 #[tokio::test]

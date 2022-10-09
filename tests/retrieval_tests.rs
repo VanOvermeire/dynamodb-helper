@@ -1,10 +1,4 @@
-use std::collections::HashMap;
-use aws_sdk_dynamodb::model::{AttributeValue};
 use std::iter::Iterator;
-use aws_sdk_dynamodb::Client;
-use aws_sdk_dynamodb::types::SdkError;
-use http::Uri;
-use tokio_stream::StreamExt;
 
 mod util;
 use util::*;

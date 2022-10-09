@@ -90,6 +90,7 @@ It has the following methods:
 - `get()`
 - `get_by_partition_key()` when you have a complex key (partition plus range)
 - `batch_get()`
+- `batch_put()` which only works for *new* items
 - `scan()`
 - `put()`
 - `delete()`
@@ -118,8 +119,8 @@ Pull requests with improvements or additional features are welcome. They should 
 
 ## TODO
 
-- support maps
-- batch write
+- support maps!
+- batch update - or make the batch put work for both new and existing
 - handle pagination (for query and batch)
 - own error handling
     - less use of expect, more Result
