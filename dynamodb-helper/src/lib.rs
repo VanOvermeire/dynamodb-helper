@@ -48,8 +48,8 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
         #from_hashmap_for_struct
 
         pub struct #helper_ident {
-            client: aws_sdk_dynamodb::Client,
-            table: String,
+            pub client: aws_sdk_dynamodb::Client,
+            pub table: String,
         }
 
         impl #helper_ident {

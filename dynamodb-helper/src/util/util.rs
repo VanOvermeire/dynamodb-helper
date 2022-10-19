@@ -11,7 +11,6 @@ pub enum DynamoTypes {
     Boolean,
     StringList,
     NumberList,
-    // TODO boolean list
     List, // L [ {"S": "Cookies"} , {"S": "Coffee"}, {"N": "3.14159"}]
     Map, // M {"Name": {"S": "Joe"}, "Age": {"N": "35"}}, pass as Hashmap String AttributeValue
     String,
@@ -19,7 +18,7 @@ pub enum DynamoTypes {
     // NumberSet,
     // Binary,
     // BinarySet,
-    // Null, // = Null(bool)
+    // Null,
 }
 
 pub enum DynamoScalarType {
@@ -34,6 +33,8 @@ pub fn dynamo_type(typez: &syn::Type) -> DynamoTypes {
         DynamoTypes::NumberList
     } else if matches_type(typez, "VecString") { // what about Vec&str?
         DynamoTypes::StringList
+    } else if matches_type(typez, "HashMapStringString") {
+        DynamoTypes::Map
     } else if matches_any_type(typez, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
         DynamoTypes::Number
     } else if matches_type(typez, "bool") {
@@ -79,24 +80,42 @@ pub fn get_relevant_field_info<'a>(f: &'a Field) -> (&'a Ident, String, &syn::Ty
 pub fn matches_any_type<'a>(ty: &'a syn::Type, type_names: Vec<&str>) -> bool {
     type_names.iter().any(|v| matches_type(ty, v))
 }
-// hashmap string u32
-// Path(TypePath { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { ident: "HashMap", span: #0 bytes(1106..1113) }, arguments: AngleBracketed(AngleBracketedGenericArguments { colon2_token: None, lt_token: Lt, args: [Type(Path(TypePath { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { ident: "String", span: #0 bytes(1114..1120) }, arguments: None }] } })), Comma, Type(Path(TypePath { qself: None, path: Path { leading_colon: None, segments: [PathSegment { ident: Ident { ident: "u32", span: #0 bytes(1122..1125) }, arguments: None }] } }))], gt_token: Gt }) }] } })
+
 pub fn matches_type<'a>(ty: &'a syn::Type, type_name: &str) -> bool {
     if let syn::Type::Path(ref p) = ty {
         let mut first_match = p.path.segments[0].ident.to_string();
 
-        if first_match == "Vec" || first_match == "HashMap" {
+        if first_match == "Vec" {
             if let AngleBracketed(AngleBracketedGenericArguments { args, .. }) = &p.path.segments[0].arguments {
                 let addition = args.iter().next().and_then(|rabbit_hole| {
                         match rabbit_hole {
-                            syn::GenericArgument::Type(syn::Type::Path(ty)) => Some(ty.path.segments[0].ident.to_string()),
+                            syn::GenericArgument::Type(syn::Type::Path(ty)) => {
+                                Some(ty.path.segments[0].ident.to_string())
+                            },
                             _ => None,
                         }
                     });
                 first_match = format!("{}{}", first_match, addition.unwrap_or("".to_string()));
             }
         }
+
+        if first_match == "HashMap" {
+            if let AngleBracketed(AngleBracketedGenericArguments { args, .. }) = &p.path.segments[0].arguments {
+                let map_args: Vec<String> = args.iter().filter_map(|rabbit_hole| {
+                    match rabbit_hole {
+                        syn::GenericArgument::Type(syn::Type::Path(ty)) => {
+                            Some(ty.path.segments[0].ident.to_string())
+                        }
+                        _ => None,
+                    }
+                }).collect();
+                first_match = format!("{}{}", first_match, map_args.join(""));
+            }
+        }
+
         return first_match == type_name.to_string()
     }
     false
 }
+
+

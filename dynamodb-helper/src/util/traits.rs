@@ -14,27 +14,32 @@ pub fn build_from_hashmap_for_struct(struct_name: &Ident, fields: &Punctuated<Fi
                 quote! {
                     #name: map.get(#name_as_string).map(|v| v.as_s().expect("Attribute value conversion to work")).map(|v| v.to_string()).expect("Value for struct property to be present"),
                 }
-            },
+            }
             DynamoTypes::Number => {
                 quote! {
                     #name: map.get(#name_as_string).map(|v| v.as_n().expect("Attribute value conversion to work")).map(|v| str::parse(v).expect("To be able to parse a number from Dynamo")).expect("Value for struct property to be present"),
                 }
-            },
+            }
             DynamoTypes::Boolean => {
                 quote! {
                     #name: map.get(#name_as_string).map(|v| *v.as_bool().expect("Attribute value conversion to work")).expect("Value for struct property to be present"),
                 }
-            },
+            }
             DynamoTypes::StringList => {
                 quote! {
                     #name: map.get(#name_as_string).map(|v| v.as_l().expect("Attribute value conversion to work")).expect("Value for struct property to be present").iter().map(|v| v.as_s().expect("Attribute value conversion to work")).map(|v| v.clone()).collect(),
                 }
-            },
+            }
             DynamoTypes::NumberList => {
                 quote! {
                     #name: map.get(#name_as_string).map(|v| v.as_l().expect("Attribute value conversion to work")).expect("Value for struct property to be present").iter().map(|v| v.as_n().expect("Attribute value conversion to work")).map(|v| str::parse(v).expect("To be able to parse a number from Dynamo")).collect(),
                 }
-            },
+            }
+            DynamoTypes::Map => {
+                quote! {
+                    #name: map.get(#name_as_string).map(|v| v.as_m().expect("Attribute value conversion to work")).expect("Value for struct property to be present").iter().map(|v| (v.0.clone(), v.1.as_s().expect("Attribute value conversion to work").clone())).collect(),
+                }
+            }
             _ => unimplemented!("Unimplemented type")
         }
     });
@@ -63,32 +68,38 @@ pub fn build_from_struct_for_hashmap(struct_name: &Ident, fields: &Punctuated<Fi
     let hashmap_inserts = fields.iter().map(|f| {
         let (name, name_as_string, field_type) = get_relevant_field_info(f);
 
+        // TODO is the tostring required?
         match dynamo_type(field_type) {
             DynamoTypes::String => {
                 quote! {
                     map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::S(input.#name));
                 }
-            },
+            }
             DynamoTypes::Number => {
                 quote! {
                     map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::N(input.#name.to_string()));
                 }
-            },
+            }
             DynamoTypes::Boolean => {
                 quote! {
                     map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::Bool(input.#name));
                 }
-            },
+            }
             DynamoTypes::StringList => {
                 quote! {
                     map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::L(input.#name.into_iter().map(|v| AttributeValue::S(v)).collect()));
                 }
-            },
+            }
             DynamoTypes::NumberList => {
                 quote! {
                     map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::L(input.#name.into_iter().map(|v| AttributeValue::N(v.to_string())).collect()));
                 }
-            },
+            }
+            DynamoTypes::Map => {
+                quote! {
+                    map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::M(input.#name.into_iter().map(|v| (v.0, AttributeValue::S(v.1))).collect()));
+                }
+            }
             _ => unimplemented!("Unimplemented type")
         }
     });

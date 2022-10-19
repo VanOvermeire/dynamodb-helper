@@ -72,14 +72,16 @@ async fn should_be_able_to_get_from_dynamo_only_using_partition_part() {
         a_range: 1000,
         name: "Me".to_string(),
         total_amount: 6,
-        names: vec!["one".to_string()]
+        names: vec!["one".to_string()],
+        map_values: Default::default()
     };
     let second_example = OrderStructWithRange {
         an_id: "uid123".to_string(),
         a_range: 1001,
         name: "You".to_string(),
         total_amount: 7,
-        names: vec!["two".to_string()]
+        names: vec!["two".to_string()],
+        map_values: Default::default()
     };
 
     init_table(&client, get_table, "an_id", Some("a_range")).await;
@@ -132,14 +134,16 @@ async fn should_be_able_to_get_multiple_items_with_range_key() {
         a_range: 1000,
         name: "Me".to_string(),
         total_amount: 6,
-        names: vec!["one".to_string()]
+        names: vec!["one".to_string()],
+        map_values: Default::default()
     };
     let second_example = OrderStructWithRange {
         an_id: "uid123".to_string(),
         a_range: 1001,
         name: "You".to_string(),
         total_amount: 7,
-        names: vec!["two".to_string()]
+        names: vec!["two".to_string()],
+        map_values: Default::default()
     };
 
     init_table(&client, get_table, "an_id", Some("a_range")).await;

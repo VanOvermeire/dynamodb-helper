@@ -2,7 +2,8 @@
 
 This crate provides a macro that will generate a struct for interacting with DynamoDB, without all the boilerplate that this normally entails.
 
-// compared with popular rust library for doing this (uses official sdk)
+This project is similar to the [dynomite-derive](https://crates.io/crates/dynomite-derive) crate. 
+But dynomite derive is based on an unofficial Rust SDK called [rusoto](https://github.com/rusoto/rusoto) that has since gone into maintenance mode, whereas here the official SDK is used.
 
 ## Example Usage
 
@@ -97,15 +98,17 @@ It has the following methods:
 
 The create and delete table methods are appropriate for testing, pocs and smaller projects. For real applications it is probably better to create the tables as IAC and to pass the names to `new()` or `build()`.
 
+Both the client and table name are exposed as public fields in case you want to use the helper for custom queries.
+
 ### Supported types
 
-Within your struct you can use the following types
+Within your struct you can use the following types for now:
 - Numbers
 - Strings
 - Booleans
 - Vec<String>
 - Vec<Number>
-- Vec<bool>
+- HashMap<String, String>
 
 Do note that DynamoDB only supports strings, numbers and booleans for key types.
 
@@ -113,15 +116,25 @@ Do note that DynamoDB only supports strings, numbers and booleans for key types.
 
 You can't currently save as string or number *sets*.
 
+## Running the tests
+
+The tests expect a local DynamoDB to be running on your machine:
+
+```
+docker run --rm -p 8000:8000 amazon/dynamodb-local
+```
+
 ## PRs
 
 Pull requests with improvements or additional features are welcome. They should at the very least add integration tests for the new functionality - and pass the existing ones!
 
 ## TODO
 
-- support maps!
-- batch update - or make the batch put work for both new and existing
+- support boolean lists and different types of hashmaps (elegant way to do this?)
+- optional values
 - handle pagination (for query and batch)
+- better tracing of errors
+- batch update - or make the batch put work for both new and existing
 - own error handling
     - less use of expect, more Result
     - and also tryfrom instead of from
@@ -129,11 +142,8 @@ Pull requests with improvements or additional features are welcome. They should 
 
 ## Improvements
 
-- support complex values
-- help for query calls?
 - allow provisioned billing in table creation
 - allow decision on pub visibility of methods (default pub)
 - allow to disable generation of methods
-- current setup will set up a DynamoDB client for every helper struct, which is not very effective
-- testing on unit level where necessary
+- current setup will set up a DynamoDB client for every helper struct, which is less efficient
 - automated setup with Github Actions

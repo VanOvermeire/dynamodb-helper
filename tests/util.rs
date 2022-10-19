@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::iter::Map;
 use aws_sdk_dynamodb::{Client, Endpoint};
 use aws_sdk_dynamodb::model::{AttributeDefinition, AttributeValue, BillingMode, KeySchemaElement, KeyType, ScalarAttributeType};
 use aws_sdk_dynamodb::output::GetItemOutput;
@@ -25,6 +26,7 @@ pub struct OrderStructWithRange {
     pub name: String,
     pub total_amount: i32,
     pub names: Vec<String>,
+    pub map_values: HashMap<String, String>,
 }
 
 pub fn create_order_struct() -> OrderStruct {
@@ -44,6 +46,7 @@ pub fn create_order_struct_with_range() -> OrderStructWithRange {
         name: "Me".to_string(),
         total_amount: 6,
         names: vec!["a name".to_string()],
+        map_values: HashMap::from([("example".to_string(), "value".to_string())]),
     }
 }
 
@@ -139,6 +142,7 @@ pub async fn put_order_with_range_struct(table: &str, client: &Client, example: 
             ("name".to_string(), AttributeValue::S(example.name.to_string())),
             ("total_amount".to_string(), AttributeValue::N(example.total_amount.to_string())),
             ("names".to_string(), AttributeValue::L(example.names.iter().map(|v| v.clone()).map(|v| AttributeValue::S(v)).collect())),
+            ("map_values".to_string(), AttributeValue::M(example.map_values.iter().map(|v| (v.0.clone(), AttributeValue::S(v.1.clone()))).collect())),
         ])))
         .send()
         .await

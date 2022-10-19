@@ -345,27 +345,32 @@ fn get_attribute_type(key_type: &Type, name_of_attribute: Ident) -> proc_macro2:
     match dynamo_type(key_type) {
         DynamoTypes::String => {
             quote! {
-                AttributeValue::S(#name_of_attribute)
+                aws_sdk_dynamodb::model::AttributeValue::S(#name_of_attribute)
             }
         }
         DynamoTypes::Number => {
             quote! {
-                AttributeValue::N(#name_of_attribute.to_string())
+                aws_sdk_dynamodb::model::AttributeValue::N(#name_of_attribute.to_string())
             }
         }
         DynamoTypes::Boolean => {
             quote! {
-                AttributeValue::Bool(#name_of_attribute)
+                aws_sdk_dynamodb::model::AttributeValue::Bool(#name_of_attribute)
             }
         }
         DynamoTypes::StringList => {
             quote! {
-                AttributeValue::L(#name_of_attribute)
+                aws_sdk_dynamodb::model::AttributeValue::L(#name_of_attribute)
             }
         }
         DynamoTypes::NumberList => {
             quote! {
-                AttributeValue::L(#name_of_attribute)
+                aws_sdk_dynamodb::model::AttributeValue::L(#name_of_attribute)
+            }
+        }
+        DynamoTypes::Map => {
+            quote! {
+                aws_sdk_dynamodb::model::AttributeValue::M(#name_of_attribute)
             }
         }
         _ => unimplemented!("Unimplemented type")
