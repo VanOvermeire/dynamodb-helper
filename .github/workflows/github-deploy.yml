@@ -1,0 +1,23 @@
+name: DynamoDB Helper Build
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+
+env:
+  PROJECT_NAME: dynamodb_helper
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - name: Start the local dynamodb container
+        run: docker run --rm -p 8000:8000 amazon/dynamodb-local
+      - name: Run all tests
+        run: cargo test
+
+# build
+# send to crates.io

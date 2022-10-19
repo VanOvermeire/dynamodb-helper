@@ -45,32 +45,35 @@ let multiple_structs = other_db.get_by_partition_key("someId".to_string()).await
 
 Also see the unit and integration tests.
 
-Note that you will need an AWS account, credentials and these dependencies:
+Be sure to check the important notes and details below for more usage info and an overview of attributes and methods.
+
+## Usage notes
+
+### Dependencies
+
+These dependencies are required:
 
 ```
 aws-config = "0.47.0"
 aws-sdk-dynamodb = "0.17.0"
 ```
 
-Be sure to check the important notes and details below for more usage info and an overview of attributes and methods.
+And possibly the `tokio-stream` dependency as well (see below)
 
-## Important notes
+### StreamExt trait
 
-Certain methods like scan required the following trait to be in scope, so you will need to add this to your file
+If you get an error warning about `the following trait bounds were not satisfied: impl futures_core::stream::Stream<Item = Result<...> + Unpin: Iterator` this 
+is probably caused by your use of the generated scan method, which requires the following trait to be in scope (add this to your file imports):
 
 ```
 use tokio_stream::StreamExt;
 ```
 
-For which you will need the `tokio-stream` dependency.
+And add the `tokio-stream` dependency.
 
-If you get an error warning about `the following trait bounds were not satisfied: impl futures_core::stream::Stream<Item = Result<...> + Unpin: Iterator`
+## Macro details
 
-In the future, you will be able to disable generation of these methods as an alternative.
-
-## Details
-
-### Attributes
+### Macro attributes
 
 - `#[partition]` should decorate the field that will serve as the partition/hash key
 - `#[range]` can optionally be placed on a field that serves as a range/sort key
@@ -112,11 +115,11 @@ Within your struct you can use the following types for now:
 
 Do note that DynamoDB only supports strings, numbers and booleans for key types.
 
-### Other notes on types
+Saving as string or number *sets* is not possible.
 
-You can't currently save as string or number *sets*.
+## Development
 
-## Running the tests
+### Running the tests
 
 The tests expect a local DynamoDB to be running on your machine:
 
@@ -124,11 +127,11 @@ The tests expect a local DynamoDB to be running on your machine:
 docker run --rm -p 8000:8000 amazon/dynamodb-local
 ```
 
-## PRs
+### PRs
 
 Pull requests with improvements or additional features are welcome. They should at the very least add integration tests for the new functionality - and pass the existing ones!
 
-## TODO
+### TODO
 
 - support boolean lists and different types of hashmaps (elegant way to do this?)
 - optional values
@@ -140,10 +143,9 @@ Pull requests with improvements or additional features are welcome. They should 
     - and also tryfrom instead of from
 - fix TODO's in code
 
-## Improvements
+### Improvements
 
 - allow provisioned billing in table creation
 - allow decision on pub visibility of methods (default pub)
 - allow to disable generation of methods
 - current setup will set up a DynamoDB client for every helper struct, which is less efficient
-- automated setup with Github Actions
