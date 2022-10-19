@@ -1,6 +1,6 @@
 use std::iter::Iterator;
 
-mod util;
+pub mod util;
 use util::*;
 
 #[tokio::test]

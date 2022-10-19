@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::iter::Map;
 use aws_sdk_dynamodb::{Client, Endpoint};
 use aws_sdk_dynamodb::model::{AttributeDefinition, AttributeValue, BillingMode, KeySchemaElement, KeyType, ScalarAttributeType};
 use aws_sdk_dynamodb::output::GetItemOutput;

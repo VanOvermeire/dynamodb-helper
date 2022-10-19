@@ -59,7 +59,7 @@ mod tests {
     use super::*;
 
     #[derive(DynamoDb)]
-    struct ExampleTestStruct {
+    pub struct ExampleTestStruct {
         #[partition]
         partition_key: String,
         value: i32,
@@ -67,10 +67,10 @@ mod tests {
 
     #[tokio::test]
     async fn should_generate_a_helper_struct_with_build_method() {
-        let e = ExampleTestStruct {
+        let _e = ExampleTestStruct {
             partition_key: "example".to_string(),
             value: 0,
         };
-        let help = ExampleTestStructDb::build(aws_sdk_dynamodb::Region::new("eu-west-1"), "exampleTable").await;
+        let _help = ExampleTestStructDb::build(aws_sdk_dynamodb::Region::new("eu-west-1"), "exampleTable").await;
     }
 }
