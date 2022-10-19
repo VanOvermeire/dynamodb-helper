@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use aws_sdk_dynamodb::{Client, Endpoint, Region};
+use aws_sdk_dynamodb::{Client, Credentials, Endpoint, Region};
 use aws_sdk_dynamodb::model::{AttributeDefinition, AttributeValue, BillingMode, KeySchemaElement, KeyType, ScalarAttributeType};
 use aws_sdk_dynamodb::output::GetItemOutput;
 use http::Uri;
@@ -50,7 +50,18 @@ pub fn create_order_struct_with_range() -> OrderStructWithRange {
 }
 
 pub async fn create_client() -> Client {
-    let config = aws_config::load_from_env().await;
+    let config = aws_config::from_env()
+        .region(Region::new("eu-central-1"))
+        .credentials_provider(Credentials::new(
+            "accesskey",
+            "privatekey",
+            None,
+            None,
+            "dummy",
+        ))
+        .load()
+        .await;
+
     let dynamodb_local_config = aws_sdk_dynamodb::config::Builder::from(&config)
         .region(Some(Region::from_static("eu-west-1")))
         .endpoint_resolver(Endpoint::immutable(Uri::from_static("http://localhost:8000")))
