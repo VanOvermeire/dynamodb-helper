@@ -5,6 +5,10 @@ This crate provides a macro that will generate a struct for interacting with Dyn
 This project is similar to the [dynomite-derive](https://crates.io/crates/dynomite-derive) crate. 
 But dynomite derive is based on an unofficial Rust SDK called [rusoto](https://github.com/rusoto/rusoto) that has since gone into maintenance mode, whereas here the official SDK is used.
 
+## Status
+
+![Github Actions Status](https://github.com/VanOvermeire/dynamodb-helper/actions/workflows/github-deploy.yml/badge.svg)
+
 ## Example Usage
 
 ```
