@@ -341,7 +341,7 @@ pub fn create_table_method(partition_key_ident_and_type: (&Ident, &Type), range_
                 .table_name(&self.table)
                 .set_key_schema(Some(keys))
                 .set_attribute_definitions(Some(ads))
-                .billing_mode(BillingMode::Provisioned)
+                .billing_mode(aws_sdk_dynamodb::model::BillingMode::Provisioned)
                 .provisioned_throughput(provisioned)
                 .send()
                 .await
