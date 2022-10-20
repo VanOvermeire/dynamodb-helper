@@ -1,8 +1,13 @@
+use quote::quote;
 use quote::__private::Ident;
+use syn::{Attribute};
 use syn::{AngleBracketedGenericArguments, Field};
 use syn::PathArguments::AngleBracketed;
 use syn::punctuated::{Punctuated};
 use syn::token::Comma;
+use syn::__private::TokenStream2;
+use proc_macro2::TokenTree::Group;
+use proc_macro2::TokenTree::Literal;
 
 pub const ALL_NUMERIC_TYPES_AS_STRINGS: &'static [&'static str] = &["u8", "u16", "u32", "u64", "u128", "i8", "i16", "i32", "i64", "i128", "f32", "f64"];
 
@@ -118,4 +123,36 @@ pub fn matches_type<'a>(ty: &'a syn::Type, type_name: &str) -> bool {
     false
 }
 
+pub fn get_macro_attribute(attrs: &Vec<Attribute>, attribute_name: &str) -> Vec<String> {
+    attrs
+        .into_iter()
+        .filter(|attribute| attribute.path.is_ident(attribute_name))
+        .flat_map(|attribute| {
+            attribute.tokens.clone().into_iter().flat_map(|t| {
+                match t {
+                    Group(g) => {
+                        g.stream().into_iter().filter_map(|s| {
+                            match s {
+                                Literal(l) => {
+                                    Some(l.to_string())
+                                }
+                                _ => None
+                            }
+                        }).collect()
+                    }
+                    _ => vec![]
+                }
+            })
+                .collect::<Vec<String>>()
+        })
+        .map(|att| att.replace("\"", "")) // caused by the to string, but perhaps a better way to get rid of it
+        .collect()
+}
 
+pub fn tokenstream_or_empty_if_exclusion(stream: TokenStream2, method_name: &str, exclusions: &Vec<String>) -> TokenStream2 {
+    if exclusions.contains(&method_name.to_string()) {
+        quote! {}
+    } else {
+        stream
+    }
+}

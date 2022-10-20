@@ -5,6 +5,7 @@ use syn::{Field};
 use syn::token::Comma;
 use crate::{get_relevant_field_info, dynamo_type, DynamoTypes};
 
+// TODO try from so we can avoid the expects
 pub fn build_from_hashmap_for_struct(struct_name: &Ident, fields: &Punctuated<Field, Comma>) -> proc_macro2::TokenStream {
     let struct_inserts = fields.iter().map(|f| {
         let (name, name_as_string, field_type) = get_relevant_field_info(f);

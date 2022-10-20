@@ -50,7 +50,6 @@ async fn main() {
         partition_key: String,
         val: bool,
     }
-
 }
 
 #[cfg(test)]
@@ -59,6 +58,7 @@ mod tests {
     use super::*;
 
     #[derive(DynamoDb)]
+    #[exclusion("scan", "delete_table", "create_table")]
     pub struct ExampleTestStruct {
         #[partition]
         partition_key: String,

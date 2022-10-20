@@ -49,7 +49,7 @@ let multiple_structs = other_db.get_by_partition_key("someId".to_string()).await
 
 Also see the unit and integration tests.
 
-Be sure to check the important notes and details below for more usage info and an overview of attributes and methods.
+Be sure to check the [usage info](#usage-notes) and the overview of [attributes and methods](#macro-details).
 
 ## Usage notes
 
@@ -73,7 +73,7 @@ is probably caused by your use of the generated scan method, which requires the 
 use tokio_stream::StreamExt;
 ```
 
-And add the `tokio-stream` dependency.
+And add the `tokio-stream` dependency. Alternatively, you can [exclude scan](#exclusions).
 
 ## Macro details
 
@@ -121,6 +121,22 @@ Do note that DynamoDB only supports strings, numbers and booleans for key types.
 
 Saving as string or number *sets* is not possible.
 
+### Exclusions
+
+You can optionally decide against generating methods, either because you want to generate less code, or because you think having something like delete / delete table available is dangerous.
+
+```
+#[derive(DynamoDb)]
+#[exclusion("scan", "delete_table", "create_table")]
+pub struct ExampleTestStruct {
+    #[partition]
+    partition_key: String,
+    value: i32,
+}
+```
+
+'Exclusions' accepts the following parameters: "put", "batch_put", "delete", "scan", "create_table" and "delete_table".
+
 ## Development
 
 ### Running the tests
@@ -137,19 +153,18 @@ Pull requests with improvements or additional features are welcome. They should 
 
 ### TODO
 
-- support boolean lists and different types of hashmaps (elegant way to do this?)
-- optional values
-- handle pagination (for query and batch)
-- better tracing of errors
 - batch update - or make the batch put work for both new and existing
+- optional values
+- better tracing of errors
+- handle pagination (for query and batch)
 - own error handling
     - less use of expect, more Result
     - and also tryfrom instead of from
-- fix TODO's in code
+- support boolean lists and different types of hashmaps (elegant way to do this?)
+- TODO's in code
 
 ### Improvements
 
 - allow provisioned billing in table creation
 - allow decision on pub visibility of methods (default pub)
-- allow to disable generation of methods
 - current setup will set up a DynamoDB client for every helper struct, which is less efficient
