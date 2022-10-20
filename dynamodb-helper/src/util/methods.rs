@@ -327,6 +327,25 @@ pub fn create_table_method(partition_key_ident_and_type: (&Ident, &Type), range_
                 .send()
                 .await
         }
+
+        pub async fn create_table_with_provisioned_throughput(&self, read_capacity: i64, write_capacity: i64) -> Result<aws_sdk_dynamodb::output::CreateTableOutput, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::CreateTableError>> {
+            #ads_def
+            #keys_def
+
+            let provisioned = aws_sdk_dynamodb::model::ProvisionedThroughput::builder()
+                .read_capacity_units(read_capacity)
+                .write_capacity_units(write_capacity)
+                .build();
+
+            self.client.create_table()
+                .table_name(&self.table)
+                .set_key_schema(Some(keys))
+                .set_attribute_definitions(Some(ads))
+                .billing_mode(BillingMode::Provisioned)
+                .provisioned_throughput(provisioned)
+                .send()
+                .await
+        }
     }
 }
 

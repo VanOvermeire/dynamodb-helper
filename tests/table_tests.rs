@@ -1,4 +1,6 @@
 pub mod util;
+
+use aws_sdk_dynamodb::model::KeyType;
 use util::*;
 
 #[tokio::test]
@@ -11,12 +13,50 @@ async fn should_be_able_to_create_a_table() {
 
     db.create_table().await.expect("Create table to work");
 
-    let results = client.list_tables()
+    let result = client.describe_table()
+        .table_name(create_table)
         .send()
         .await
-        .expect("To be able to list table");
+        .expect("To be able to describe tables");
 
-    assert!(results.table_names.is_some() && results.table_names().unwrap().contains(&create_table.to_string()));
+    assert!(result.table.is_some());
+
+    let table = result.table.unwrap();
+
+    assert_eq!(table.key_schema.as_ref().unwrap()[0].attribute_name.as_ref().unwrap(), "an_id");
+    assert_eq!(table.key_schema.as_ref().unwrap()[0].key_type.as_ref().unwrap(), &KeyType::Hash);
+    assert_eq!(table.key_schema.as_ref().unwrap()[1].attribute_name.as_ref().unwrap(), "a_range");
+    assert_eq!(table.key_schema.as_ref().unwrap()[1].key_type.as_ref().unwrap(), &KeyType::Range);
+
+    destroy_table(&client, create_table).await;
+}
+
+#[tokio::test]
+async fn should_be_able_to_create_provisioned_table() {
+    let create_table = "createProvisionedTableTable";
+    let client = create_client().await;
+    let client_for_struct = create_client().await;
+
+    let db = OrderStructWithRangeDb::new(client_for_struct, create_table);
+
+    db.create_table_with_provisioned_throughput(5, 7).await.expect("Create table to work");
+
+    let result = client.describe_table()
+        .table_name(create_table)
+        .send()
+        .await
+        .expect("To be able to describe tables");
+
+    assert!(result.table.is_some());
+
+    let table = result.table.unwrap();
+
+    assert_eq!(table.key_schema.as_ref().unwrap()[0].attribute_name.as_ref().unwrap(), "an_id");
+    assert_eq!(table.key_schema.as_ref().unwrap()[0].key_type.as_ref().unwrap(), &KeyType::Hash);
+    assert_eq!(table.key_schema.as_ref().unwrap()[1].attribute_name.as_ref().unwrap(), "a_range");
+    assert_eq!(table.key_schema.as_ref().unwrap()[1].key_type.as_ref().unwrap(), &KeyType::Range);
+    assert_eq!(table.provisioned_throughput.as_ref().unwrap().read_capacity_units.unwrap(), 5);
+    assert_eq!(table.provisioned_throughput.as_ref().unwrap().write_capacity_units.unwrap(), 7);
 
     destroy_table(&client, create_table).await;
 }
@@ -42,3 +82,5 @@ async fn should_be_able_to_delete_a_table() {
 
     assert!(filtered.is_none() || filtered.unwrap().len() == 0);
 }
+
+

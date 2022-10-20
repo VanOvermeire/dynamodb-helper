@@ -93,8 +93,9 @@ The macro will generate a new struct, with the name of the annotated struct plus
 It has the following methods:
 - `new()`
 - `build()`
-- `createTable()`
-- `deleteTable()`
+- `create_table()`
+- `create_table_with_provisioned_throughput()`
+- `delete_table()`
 - `get()`
 - `get_by_partition_key()` when you have a complex key (partition plus range)
 - `batch_get()`
@@ -163,8 +164,7 @@ Pull requests with improvements or additional features are welcome. They should 
 - support boolean lists and different types of hashmaps (elegant way to do this?)
 - TODO's in code
 
-### Improvements
+### Possible improvements
 
-- allow provisioned billing in table creation
-- allow decision on pub visibility of methods (default pub)
-- current setup will set up a DynamoDB client for every helper struct, which is less efficient
+- allow decision on pub visibility of methods (default pub)?
+- current setup will set up a DynamoDB client for every helper struct, which is not optimal
