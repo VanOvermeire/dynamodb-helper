@@ -3,7 +3,7 @@ use quote::__private::Ident;
 use syn::punctuated::{Punctuated};
 use syn::{Field};
 use syn::token::Comma;
-use crate::{get_relevant_field_info, dynamo_type, DynamoTypes};
+use crate::{get_relevant_field_info, dynamo_type, DynamoType};
 
 // TODO try from so we can avoid the expects
 pub fn build_from_hashmap_for_struct(struct_name: &Ident, fields: &Punctuated<Field, Comma>) -> proc_macro2::TokenStream {
@@ -11,32 +11,32 @@ pub fn build_from_hashmap_for_struct(struct_name: &Ident, fields: &Punctuated<Fi
         let (name, name_as_string, field_type) = get_relevant_field_info(f);
 
         match dynamo_type(field_type) {
-            DynamoTypes::String => {
+            DynamoType::String => {
                 quote! {
                     #name: map.get(#name_as_string).map(|v| v.as_s().expect("Attribute value conversion to work")).map(|v| v.to_string()).expect("Value for struct property to be present"),
                 }
             }
-            DynamoTypes::Number => {
+            DynamoType::Number => {
                 quote! {
                     #name: map.get(#name_as_string).map(|v| v.as_n().expect("Attribute value conversion to work")).map(|v| str::parse(v).expect("To be able to parse a number from Dynamo")).expect("Value for struct property to be present"),
                 }
             }
-            DynamoTypes::Boolean => {
+            DynamoType::Boolean => {
                 quote! {
                     #name: map.get(#name_as_string).map(|v| *v.as_bool().expect("Attribute value conversion to work")).expect("Value for struct property to be present"),
                 }
             }
-            DynamoTypes::StringList => {
+            DynamoType::StringList => {
                 quote! {
                     #name: map.get(#name_as_string).map(|v| v.as_l().expect("Attribute value conversion to work")).expect("Value for struct property to be present").iter().map(|v| v.as_s().expect("Attribute value conversion to work")).map(|v| v.clone()).collect(),
                 }
             }
-            DynamoTypes::NumberList => {
+            DynamoType::NumberList => {
                 quote! {
                     #name: map.get(#name_as_string).map(|v| v.as_l().expect("Attribute value conversion to work")).expect("Value for struct property to be present").iter().map(|v| v.as_n().expect("Attribute value conversion to work")).map(|v| str::parse(v).expect("To be able to parse a number from Dynamo")).collect(),
                 }
             }
-            DynamoTypes::Map => {
+            DynamoType::Map => {
                 quote! {
                     #name: map.get(#name_as_string).map(|v| v.as_m().expect("Attribute value conversion to work")).expect("Value for struct property to be present").iter().map(|v| (v.0.clone(), v.1.as_s().expect("Attribute value conversion to work").clone())).collect(),
                 }
@@ -71,32 +71,32 @@ pub fn build_from_struct_for_hashmap(struct_name: &Ident, fields: &Punctuated<Fi
 
         // TODO is the tostring required?
         match dynamo_type(field_type) {
-            DynamoTypes::String => {
+            DynamoType::String => {
                 quote! {
                     map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::S(input.#name));
                 }
             }
-            DynamoTypes::Number => {
+            DynamoType::Number => {
                 quote! {
                     map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::N(input.#name.to_string()));
                 }
             }
-            DynamoTypes::Boolean => {
+            DynamoType::Boolean => {
                 quote! {
                     map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::Bool(input.#name));
                 }
             }
-            DynamoTypes::StringList => {
+            DynamoType::StringList => {
                 quote! {
                     map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::L(input.#name.into_iter().map(|v| AttributeValue::S(v)).collect()));
                 }
             }
-            DynamoTypes::NumberList => {
+            DynamoType::NumberList => {
                 quote! {
                     map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::L(input.#name.into_iter().map(|v| AttributeValue::N(v.to_string())).collect()));
                 }
             }
-            DynamoTypes::Map => {
+            DynamoType::Map => {
                 quote! {
                     map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::M(input.#name.into_iter().map(|v| (v.0, AttributeValue::S(v.1))).collect()));
                 }

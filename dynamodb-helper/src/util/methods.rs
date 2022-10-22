@@ -1,7 +1,7 @@
 use quote::quote;
 use quote::__private::Ident;
 use syn::{Type};
-use crate::{dynamo_type, scalar_dynamo_type, DynamoTypes, DynamoScalarType};
+use crate::{dynamo_type, scalar_dynamo_type, DynamoType, DynamoScalarType};
 
 pub fn new_method(helper_ident: &Ident) -> proc_macro2::TokenStream {
     quote! {
@@ -362,32 +362,32 @@ pub fn delete_table_method() -> proc_macro2::TokenStream {
 
 fn get_attribute_type(key_type: &Type, name_of_attribute: Ident) -> proc_macro2::TokenStream {
     match dynamo_type(key_type) {
-        DynamoTypes::String => {
+        DynamoType::String => {
             quote! {
                 aws_sdk_dynamodb::model::AttributeValue::S(#name_of_attribute)
             }
         }
-        DynamoTypes::Number => {
+        DynamoType::Number => {
             quote! {
                 aws_sdk_dynamodb::model::AttributeValue::N(#name_of_attribute.to_string())
             }
         }
-        DynamoTypes::Boolean => {
+        DynamoType::Boolean => {
             quote! {
                 aws_sdk_dynamodb::model::AttributeValue::Bool(#name_of_attribute)
             }
         }
-        DynamoTypes::StringList => {
+        DynamoType::StringList => {
             quote! {
                 aws_sdk_dynamodb::model::AttributeValue::L(#name_of_attribute)
             }
         }
-        DynamoTypes::NumberList => {
+        DynamoType::NumberList => {
             quote! {
                 aws_sdk_dynamodb::model::AttributeValue::L(#name_of_attribute)
             }
         }
-        DynamoTypes::Map => {
+        DynamoType::Map => {
             quote! {
                 aws_sdk_dynamodb::model::AttributeValue::M(#name_of_attribute)
             }

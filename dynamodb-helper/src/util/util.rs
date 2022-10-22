@@ -11,19 +11,14 @@ use proc_macro2::TokenTree::Literal;
 
 pub const ALL_NUMERIC_TYPES_AS_STRINGS: &'static [&'static str] = &["u8", "u16", "u32", "u64", "u128", "i8", "i16", "i32", "i64", "i128", "f32", "f64"];
 
-pub enum DynamoTypes {
+pub enum DynamoType {
     Number,
     Boolean,
     StringList,
     NumberList,
-    List, // L [ {"S": "Cookies"} , {"S": "Coffee"}, {"N": "3.14159"}]
-    Map, // M {"Name": {"S": "Joe"}, "Age": {"N": "35"}}, pass as Hashmap String AttributeValue
+    List,
+    Map,
     String,
-    // StringSet,
-    // NumberSet,
-    // Binary,
-    // BinarySet,
-    // Null,
 }
 
 pub enum DynamoScalarType {
@@ -32,20 +27,20 @@ pub enum DynamoScalarType {
     Boolean,
 }
 
-pub fn dynamo_type(typez: &syn::Type) -> DynamoTypes {
+pub fn dynamo_type(typez: &syn::Type) -> DynamoType {
     let vec_nums: Vec<String> = ALL_NUMERIC_TYPES_AS_STRINGS.to_vec().iter().map(|num| format!("Vec{}", num)).collect();
     if matches_any_type(typez, vec_nums.iter().map(|s| &s as &str).collect()) {
-        DynamoTypes::NumberList
+        DynamoType::NumberList
     } else if matches_type(typez, "VecString") { // what about Vec&str?
-        DynamoTypes::StringList
+        DynamoType::StringList
     } else if matches_type(typez, "HashMapStringString") {
-        DynamoTypes::Map
+        DynamoType::Map
     } else if matches_any_type(typez, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
-        DynamoTypes::Number
+        DynamoType::Number
     } else if matches_type(typez, "bool") {
-        DynamoTypes::Boolean
+        DynamoType::Boolean
     } else {
-        DynamoTypes::String
+        DynamoType::String
     }
 }
 

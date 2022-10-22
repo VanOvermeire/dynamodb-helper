@@ -167,3 +167,4 @@ Pull requests with improvements or additional features are welcome. They should 
 
 - allow decision on pub visibility of methods (default pub)?
 - current setup will set up a DynamoDB client for every helper struct, which is not optimal
+- support stringset, numberset, binaryset (low priority) and binary
