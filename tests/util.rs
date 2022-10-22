@@ -14,6 +14,7 @@ pub struct OrderStruct {
     pub total_amount: f32,
     pub a_boolean: bool,
     pub numbers: Vec<i16>,
+    pub something_optional: Option<String>,
 }
 
 #[derive(DynamoDb, Debug, Clone)]
@@ -34,7 +35,8 @@ pub fn create_order_struct() -> OrderStruct {
         name: "Me".to_string(),
         total_amount: 6.0,
         a_boolean: false,
-        numbers: vec![1, 2]
+        numbers: vec![1, 2],
+        something_optional: Some("something".to_string())
     }
 }
 
@@ -130,15 +132,20 @@ pub async fn destroy_table(client: &Client, table_name: &str) {
 }
 
 pub async fn put_order_struct(table: &str, client: &Client, struc: &OrderStruct) {
+    let mut basic_map = HashMap::from([
+        ("an_id".to_string(), AttributeValue::S(struc.an_id.to_string())),
+        ("name".to_string(), AttributeValue::S(struc.name.to_string())),
+        ("total_amount".to_string(), AttributeValue::N(struc.total_amount.to_string())),
+        ("a_boolean".to_string(), AttributeValue::Bool(struc.a_boolean)),
+        ("numbers".to_string(), AttributeValue::L(struc.numbers.iter().map(|v| AttributeValue::N(v.to_string())).collect())),
+    ]);
+    if struc.something_optional.is_some() {
+        basic_map.insert("something_optional".to_string(), AttributeValue::S(struc.something_optional.as_ref().unwrap().to_string()));
+    };
+
     client.put_item()
         .table_name(table)
-        .set_item(Some(HashMap::from([
-            ("an_id".to_string(), AttributeValue::S(struc.an_id.to_string())),
-            ("name".to_string(), AttributeValue::S(struc.name.to_string())),
-            ("total_amount".to_string(), AttributeValue::N(struc.total_amount.to_string())),
-            ("a_boolean".to_string(), AttributeValue::Bool(struc.a_boolean)),
-            ("numbers".to_string(), AttributeValue::L(struc.numbers.iter().map(|v| AttributeValue::N(v.to_string())).collect())),
-        ])))
+        .set_item(Some(basic_map))
         .send()
         .await
         .expect("To be able to put");

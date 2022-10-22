@@ -45,7 +45,7 @@ pub fn possibly_optional_dynamo_type(ty: &syn::Type) -> PossiblyOptionalDynamoTy
                 }
             }
         }
-        return unreachable!("Option should have inner type");
+        unreachable!("Option should have inner type");
     } else {
         PossiblyOptionalDynamoType::Normal(dynamo_type(ty))
     }

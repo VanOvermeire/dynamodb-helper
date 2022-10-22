@@ -49,8 +49,6 @@ async fn main() {
         #[partition]
         partition_key: String,
         val: bool,
-        op: Option<String>,
-        second: Option<HashMap<String, String>>
     }
 }
 
