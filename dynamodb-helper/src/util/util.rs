@@ -8,8 +8,15 @@ use syn::token::Comma;
 use syn::__private::TokenStream2;
 use proc_macro2::TokenTree::Group;
 use proc_macro2::TokenTree::Literal;
+use quote::__private::ext::RepToTokensExt;
 
 pub const ALL_NUMERIC_TYPES_AS_STRINGS: &'static [&'static str] = &["u8", "u16", "u32", "u64", "u128", "i8", "i16", "i32", "i64", "i128", "f32", "f64"];
+
+pub enum DynamoScalarType {
+    Number,
+    String,
+    Boolean,
+}
 
 pub enum DynamoType {
     Number,
@@ -21,33 +28,50 @@ pub enum DynamoType {
     String,
 }
 
-pub enum DynamoScalarType {
-    Number,
-    String,
-    Boolean,
+// TODO could possibly use a similar approach for hashmap and list...
+// IterarableDynamoType { Simple(DynamoType), List(DynamoType), Map(DynamoType, DynamoType)
+pub enum PossiblyOptionalDynamoType {
+    Normal(DynamoType),
+    Optional(DynamoType),
 }
 
-pub fn dynamo_type(typez: &syn::Type) -> DynamoType {
+pub fn possibly_optional_dynamo_type(ty: &syn::Type) -> PossiblyOptionalDynamoType {
+    if matches_type(ty, "Option") {
+        if let syn::Type::Path(ref p) = ty {
+            if let AngleBracketed(AngleBracketedGenericArguments { args, .. }) = &p.path.segments[0].arguments {
+                return match &args[0] {
+                    syn::GenericArgument::Type(t) => PossiblyOptionalDynamoType::Optional(dynamo_type(t)),
+                    _ => unreachable!("Option should have an inner type")
+                }
+            }
+        }
+        return unreachable!("Option should have inner type");
+    } else {
+        PossiblyOptionalDynamoType::Normal(dynamo_type(ty))
+    }
+}
+
+pub fn dynamo_type(ty: &syn::Type) -> DynamoType {
     let vec_nums: Vec<String> = ALL_NUMERIC_TYPES_AS_STRINGS.to_vec().iter().map(|num| format!("Vec{}", num)).collect();
-    if matches_any_type(typez, vec_nums.iter().map(|s| &s as &str).collect()) {
+    if matches_any_type(ty, vec_nums.iter().map(|s| &s as &str).collect()) {
         DynamoType::NumberList
-    } else if matches_type(typez, "VecString") { // what about Vec&str?
+    } else if matches_type(ty, "VecString") { // what about Vec&str?
         DynamoType::StringList
-    } else if matches_type(typez, "HashMapStringString") {
+    } else if matches_type(ty, "HashMapStringString") {
         DynamoType::Map
-    } else if matches_any_type(typez, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
+    } else if matches_any_type(ty, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
         DynamoType::Number
-    } else if matches_type(typez, "bool") {
+    } else if matches_type(ty, "bool") {
         DynamoType::Boolean
     } else {
         DynamoType::String
     }
 }
 
-pub fn scalar_dynamo_type(typez: &syn::Type) -> DynamoScalarType {
-    if matches_any_type(typez, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
+pub fn scalar_dynamo_type(ty: &syn::Type) -> DynamoScalarType {
+    if matches_any_type(ty, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
         DynamoScalarType::Number
-    } else if matches_type(typez, "bool") {
+    } else if matches_type(ty, "bool") {
         DynamoScalarType::Boolean
     } else {
         DynamoScalarType::String
@@ -82,19 +106,21 @@ pub fn matches_any_type<'a>(ty: &'a syn::Type, type_names: Vec<&str>) -> bool {
 }
 
 pub fn matches_type<'a>(ty: &'a syn::Type, type_name: &str) -> bool {
+    // println!("IN HERE WITH {:?}", ty);
+
     if let syn::Type::Path(ref p) = ty {
         let mut first_match = p.path.segments[0].ident.to_string();
 
         if first_match == "Vec" {
             if let AngleBracketed(AngleBracketedGenericArguments { args, .. }) = &p.path.segments[0].arguments {
                 let addition = args.iter().next().and_then(|rabbit_hole| {
-                        match rabbit_hole {
-                            syn::GenericArgument::Type(syn::Type::Path(ty)) => {
-                                Some(ty.path.segments[0].ident.to_string())
-                            },
-                            _ => None,
+                    match rabbit_hole {
+                        syn::GenericArgument::Type(syn::Type::Path(ty)) => {
+                            Some(ty.path.segments[0].ident.to_string())
                         }
-                    });
+                        _ => None,
+                    }
+                });
                 first_match = format!("{}{}", first_match, addition.unwrap_or("".to_string()));
             }
         }
@@ -113,7 +139,7 @@ pub fn matches_type<'a>(ty: &'a syn::Type, type_name: &str) -> bool {
             }
         }
 
-        return first_match == type_name.to_string()
+        return first_match == type_name.to_string();
     }
     false
 }
