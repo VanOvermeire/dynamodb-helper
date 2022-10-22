@@ -46,6 +46,34 @@ async fn should_be_able_to_put_with_range_key() {
 }
 
 #[tokio::test]
+async fn should_be_able_to_update() {
+    let put_table = "updateTable";
+    let client = create_client().await;
+    let client_for_struct = create_client().await;
+    let example = create_order_struct();
+
+    init_table(&client, put_table, "an_id", None).await;
+
+    put_order_struct(put_table, &client, &example);
+
+    let db = OrderStructDb::new(client_for_struct, put_table);
+
+    let mut updated = example.clone();
+    updated.name = "Another name".to_string();
+
+    db.put(updated)
+        .await
+        .expect("Put to work");
+
+    let result = get_order_struct(put_table, &client, example.an_id.as_str()).await;
+
+    destroy_table(&client, put_table).await;
+
+    assert!(result.item().is_some());
+    assert_eq!(result.item().unwrap().get("name").unwrap().as_s().unwrap(), &"Another name".to_string());
+}
+
+#[tokio::test]
 async fn should_be_able_to_batch_put() {
     let put_table = "batchPutTable";
     let client = create_client().await;

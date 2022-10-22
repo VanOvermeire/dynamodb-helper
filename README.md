@@ -154,7 +154,6 @@ Pull requests with improvements or additional features are welcome. They should 
 
 ### TODO
 
-- batch update - or make the batch put work for both new and existing
 - optional values
 - better tracing of errors
 - handle pagination (for query and batch)
