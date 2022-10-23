@@ -376,6 +376,7 @@ dependencies = [
 name = "dynamodb-helper"
 version = "0.1.0"
 dependencies = [
+ "aws-sdk-dynamodb",
  "proc-macro2",
  "quote",
  "syn",

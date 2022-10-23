@@ -13,6 +13,7 @@ keywords = ["DynamoDB", "macro"]
 proc-macro2 = "1.0.46"
 quote = "1.0.20"
 syn = { version = "1.0.98", features = ["extra-traits"]}
+aws-sdk-dynamodb = "0.17.0"
 
 [lib]
 proc-macro = true
