@@ -48,8 +48,14 @@ async fn main() {
     pub struct ExampleStruct {
         #[partition]
         partition_key: String,
-        val: bool,
-        liz: Vec<i16>,
+        a_number: u32,
+        true_or_false: bool,
+        some_string: String,
+        number_liz: Vec<i16>,
+        string_list: Vec<String>,
+        a_map: HashMap<String, String>,
+        optional_string: Option<String>,
+        optional_number: Option<i32>,
     }
 }
 
