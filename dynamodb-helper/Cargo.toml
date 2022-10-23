@@ -6,7 +6,7 @@ description = "Macro that creates a struct for interacting with AWS DynamoDB"
 license = "MIT"
 homepage = "https://github.com/VanOvermeire/dynamodb-helper"
 repository = "https://github.com/VanOvermeire/dynamodb-helper"
-readme = "../README.md"
+readme = "README.md"
 keywords = ["DynamoDB", "macro"]
 
 [dependencies]
