@@ -2,6 +2,12 @@
 name = "dynamodb-helper"
 version = "0.1.0"
 edition = "2021"
+description = "Macro that creates a struct for interacting with AWS DynamoDB"
+license = "MIT"
+homepage = "https://github.com/VanOvermeire/dynamodb-helper"
+repository = "https://github.com/VanOvermeire/dynamodb-helper"
+readme = "../README.md"
+keywords = ["DynamoDB", "macro"]
 
 [dependencies]
 proc-macro2 = "1.0.46"

@@ -19,5 +19,14 @@ jobs:
       - name: Run all tests
         run: cargo test
 
-# build
-# send to crates.io
+#  publish:
+#    needs:
+#      - test
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions-rs/cargo@v1
+#        with:
+#          command: login
+#          args: ${{ secrets.CRATES_TOKEN }}
+#      - name: Publish to cargo
+#        run: cargo publish
