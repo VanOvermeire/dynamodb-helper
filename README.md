@@ -154,13 +154,12 @@ Pull requests with improvements or additional features are welcome. They should 
 
 ### TODO
 
-- optional values
 - better tracing of errors
 - handle pagination (for query and batch)
 - own error handling
     - less use of expect, more Result
     - and also tryfrom instead of from
-- support boolean lists and different types of hashmaps (elegant way to do this?)
+- support more types of lists and maps
 - TODO's in code
 
 ### Possible improvements

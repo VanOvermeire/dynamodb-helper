@@ -12,12 +12,14 @@ use quote::__private::ext::RepToTokensExt;
 
 pub const ALL_NUMERIC_TYPES_AS_STRINGS: &'static [&'static str] = &["u8", "u16", "u32", "u64", "u128", "i8", "i16", "i32", "i64", "i128", "f32", "f64"];
 
+#[derive(Debug)]
 pub enum DynamoScalarType {
     Number,
     String,
     Boolean,
 }
 
+#[derive(Debug)]
 pub enum DynamoType {
     Number,
     Boolean,
@@ -28,11 +30,17 @@ pub enum DynamoType {
     String,
 }
 
-// TODO could possibly use a similar approach for hashmap and list...
-// IterarableDynamoType { Simple(DynamoType), List(DynamoType), Map(DynamoType, DynamoType)
+#[derive(Debug)]
 pub enum PossiblyOptionalDynamoType {
     Normal(DynamoType),
     Optional(DynamoType),
+}
+
+#[derive(Debug)]
+pub enum IterableDynamoType {
+    Simple(DynamoType),
+    List(DynamoType),
+    Map(DynamoType, DynamoType),
 }
 
 pub fn possibly_optional_dynamo_type(ty: &syn::Type) -> PossiblyOptionalDynamoType {
@@ -49,6 +57,34 @@ pub fn possibly_optional_dynamo_type(ty: &syn::Type) -> PossiblyOptionalDynamoTy
     } else {
         PossiblyOptionalDynamoType::Normal(dynamo_type(ty))
     }
+}
+
+fn iterable_dynamo_type(ty: &syn::Type) -> IterableDynamoType {
+    if let syn::Type::Path(ref p) = ty {
+        let mut first_match = p.path.segments[0].ident.to_string();
+
+        if first_match == "Vec" {
+            if let AngleBracketed(AngleBracketedGenericArguments { args, .. }) = &p.path.segments[0].arguments {
+                return match &args[0] {
+                    syn::GenericArgument::Type(t) => IterableDynamoType::List(dynamo_type(t)),
+                    _ => unreachable!("Vec should have an inner type")
+                }
+            }
+        } else if first_match == "HashMap" {
+            if let AngleBracketed(AngleBracketedGenericArguments { args, .. }) = &p.path.segments[0].arguments {
+                let map_args: Vec<Option<&syn::Type>> = args.iter().map(|rabbit_hole| {
+                    match rabbit_hole {
+                        syn::GenericArgument::Type(t) => {
+                            Some(t)
+                        }
+                        _ => None,
+                    }
+                }).collect();
+                return IterableDynamoType::Map(dynamo_type(map_args[0].expect("Map to have a first argument")), dynamo_type(map_args[1].expect("Map to have a second argument")));
+            }
+        }
+    }
+    IterableDynamoType::Simple(dynamo_type(ty))
 }
 
 pub fn dynamo_type(ty: &syn::Type) -> DynamoType {
