@@ -20,20 +20,9 @@ pub enum DynamoScalarType {
 }
 
 #[derive(Debug)]
-pub enum DynamoType {
-    Number,
-    Boolean,
-    StringList,
-    NumberList,
-    List,
-    Map,
-    String,
-}
-
-#[derive(Debug)]
 pub enum PossiblyOptionalDynamoType {
-    Normal(DynamoType),
-    Optional(DynamoType),
+    Normal(IterableDynamoType),
+    Optional(IterableDynamoType),
 }
 
 #[derive(Debug)]
@@ -43,25 +32,32 @@ pub enum IterableDynamoType {
     Map(DynamoType, DynamoType),
 }
 
+#[derive(Debug)]
+pub enum DynamoType {
+    Number,
+    String,
+    Boolean,
+}
+
 pub fn possibly_optional_dynamo_type(ty: &syn::Type) -> PossiblyOptionalDynamoType {
     if matches_type(ty, "Option") {
         if let syn::Type::Path(ref p) = ty {
             if let AngleBracketed(AngleBracketedGenericArguments { args, .. }) = &p.path.segments[0].arguments {
                 return match &args[0] {
-                    syn::GenericArgument::Type(t) => PossiblyOptionalDynamoType::Optional(dynamo_type(t)),
+                    syn::GenericArgument::Type(t) => PossiblyOptionalDynamoType::Optional(iterable_dynamo_type(t)),
                     _ => unreachable!("Option should have an inner type")
                 }
             }
         }
         unreachable!("Option should have inner type");
     } else {
-        PossiblyOptionalDynamoType::Normal(dynamo_type(ty))
+        PossiblyOptionalDynamoType::Normal(iterable_dynamo_type(ty))
     }
 }
 
 fn iterable_dynamo_type(ty: &syn::Type) -> IterableDynamoType {
     if let syn::Type::Path(ref p) = ty {
-        let mut first_match = p.path.segments[0].ident.to_string();
+        let first_match = p.path.segments[0].ident.to_string();
 
         if first_match == "Vec" {
             if let AngleBracketed(AngleBracketedGenericArguments { args, .. }) = &p.path.segments[0].arguments {
@@ -88,14 +84,7 @@ fn iterable_dynamo_type(ty: &syn::Type) -> IterableDynamoType {
 }
 
 pub fn dynamo_type(ty: &syn::Type) -> DynamoType {
-    let vec_nums: Vec<String> = ALL_NUMERIC_TYPES_AS_STRINGS.to_vec().iter().map(|num| format!("Vec{}", num)).collect();
-    if matches_any_type(ty, vec_nums.iter().map(|s| &s as &str).collect()) {
-        DynamoType::NumberList
-    } else if matches_type(ty, "VecString") { // what about Vec&str?
-        DynamoType::StringList
-    } else if matches_type(ty, "HashMapStringString") {
-        DynamoType::Map
-    } else if matches_any_type(ty, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
+    if matches_any_type(ty, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
         DynamoType::Number
     } else if matches_type(ty, "bool") {
         DynamoType::Boolean
@@ -142,39 +131,8 @@ pub fn matches_any_type<'a>(ty: &'a syn::Type, type_names: Vec<&str>) -> bool {
 }
 
 pub fn matches_type<'a>(ty: &'a syn::Type, type_name: &str) -> bool {
-    // println!("IN HERE WITH {:?}", ty);
-
     if let syn::Type::Path(ref p) = ty {
-        let mut first_match = p.path.segments[0].ident.to_string();
-
-        if first_match == "Vec" {
-            if let AngleBracketed(AngleBracketedGenericArguments { args, .. }) = &p.path.segments[0].arguments {
-                let addition = args.iter().next().and_then(|rabbit_hole| {
-                    match rabbit_hole {
-                        syn::GenericArgument::Type(syn::Type::Path(ty)) => {
-                            Some(ty.path.segments[0].ident.to_string())
-                        }
-                        _ => None,
-                    }
-                });
-                first_match = format!("{}{}", first_match, addition.unwrap_or("".to_string()));
-            }
-        }
-
-        if first_match == "HashMap" {
-            if let AngleBracketed(AngleBracketedGenericArguments { args, .. }) = &p.path.segments[0].arguments {
-                let map_args: Vec<String> = args.iter().filter_map(|rabbit_hole| {
-                    match rabbit_hole {
-                        syn::GenericArgument::Type(syn::Type::Path(ty)) => {
-                            Some(ty.path.segments[0].ident.to_string())
-                        }
-                        _ => None,
-                    }
-                }).collect();
-                first_match = format!("{}{}", first_match, map_args.join(""));
-            }
-        }
-
+        let first_match = p.path.segments[0].ident.to_string();
         return first_match == type_name.to_string();
     }
     false

@@ -49,8 +49,7 @@ async fn main() {
         #[partition]
         partition_key: String,
         val: bool,
-        liz: Vec<String>,
-        mappie: HashMap<String, String>
+        liz: Vec<i16>,
     }
 }
 

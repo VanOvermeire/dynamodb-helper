@@ -110,7 +110,7 @@ Both the client and table name are exposed as public fields in case you want to 
 
 ### Supported types
 
-Within your struct you can use the following types for now:
+Within your struct you can use the following types:
 - Numbers
 - Strings
 - Booleans
@@ -118,9 +118,9 @@ Within your struct you can use the following types for now:
 - Vec<Number>
 - HashMap<String, String>
 
-Do note that DynamoDB only supports strings, numbers and booleans for key types.
+Note that DynamoDB *only supports strings, numbers and booleans for key types*.
 
-Saving as string or number *sets* is not possible.
+Saving as string or number *sets* is not possible, other types of maps and vecs are still TODO.
 
 ### Exclusions
 

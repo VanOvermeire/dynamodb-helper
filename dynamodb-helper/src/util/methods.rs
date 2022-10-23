@@ -377,22 +377,6 @@ fn get_attribute_type_for_key(key_type: &Type, name_of_attribute: Ident) -> proc
                 aws_sdk_dynamodb::model::AttributeValue::Bool(#name_of_attribute)
             }
         }
-        DynamoType::StringList => {
-            quote! {
-                aws_sdk_dynamodb::model::AttributeValue::L(#name_of_attribute)
-            }
-        }
-        DynamoType::NumberList => {
-            quote! {
-                aws_sdk_dynamodb::model::AttributeValue::L(#name_of_attribute)
-            }
-        }
-        DynamoType::Map => {
-            quote! {
-                aws_sdk_dynamodb::model::AttributeValue::M(#name_of_attribute)
-            }
-        }
-        _ => unimplemented!("Unimplemented/invalid type")
     }
 }
 
