@@ -44,11 +44,11 @@ pub fn possibly_optional_dynamo_type(ty: &syn::Type) -> PossiblyOptionalDynamoTy
             if let AngleBracketed(AngleBracketedGenericArguments { args, .. }) = &p.path.segments[0].arguments {
                 return match &args[0] {
                     syn::GenericArgument::Type(t) => PossiblyOptionalDynamoType::Optional(iterable_dynamo_type(t)),
-                    _ => unreachable!("Option should have an inner type")
+                    _ => unreachable!("Option should have an inner type - but we did not find one")
                 }
             }
         }
-        unreachable!("Option should have inner type");
+        unreachable!("Option should have inner type - but we did not find one");
     } else {
         PossiblyOptionalDynamoType::Normal(iterable_dynamo_type(ty))
     }
@@ -62,7 +62,7 @@ fn iterable_dynamo_type(ty: &syn::Type) -> IterableDynamoType {
             if let AngleBracketed(AngleBracketedGenericArguments { args, .. }) = &p.path.segments[0].arguments {
                 return match &args[0] {
                     syn::GenericArgument::Type(t) => IterableDynamoType::List(dynamo_type(t)),
-                    _ => unreachable!("Vec should have an inner type")
+                    _ => unreachable!("Vec should have an inner type - but we did not find one")
                 }
             }
         } else if first_match == "HashMap" {
@@ -75,7 +75,10 @@ fn iterable_dynamo_type(ty: &syn::Type) -> IterableDynamoType {
                         _ => None,
                     }
                 }).collect();
-                return IterableDynamoType::Map(dynamo_type(map_args[0].expect("Map to have a first argument")), dynamo_type(map_args[1].expect("Map to have a second argument")));
+                return IterableDynamoType::Map(
+                    dynamo_type(map_args[0].expect("We expect HashMap to have a first argument - but we did not find one")),
+                    dynamo_type(map_args[1].expect("We expect HashMap to have a second argument - but we did not find one"))
+                );
             }
         }
     }
