@@ -26,6 +26,21 @@ impl TestDB {
             table,
         }
     }
+
+    // pub async fn scan(&self) -> Result<Vec<TestStruct>, SdkError<ScanError>> {
+    //     let items: Result<Vec<std::collections::HashMap<std::string::String, aws_sdk_dynamodb::model::AttributeValue>>, _> = self.client.scan()
+    //         .table_name(&self.table)
+    //         .into_paginator()
+    //         .items()
+    //         .send()
+    //         .collect()
+    //         .await
+    //         ;
+    //
+    //     items
+    //         .map(|v| v.iter().map(|i| i.into()).collect())
+    //     // Ok(mapped_items)
+    // }
 }
 
 impl From<TestStruct> for HashMap<String, AttributeValue> {

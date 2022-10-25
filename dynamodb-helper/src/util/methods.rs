@@ -239,7 +239,7 @@ pub fn batch_put_method(struct_name: &Ident) -> proc_macro2::TokenStream {
 
 pub fn scan_method(struct_name: &Ident) -> proc_macro2::TokenStream {
     quote! {
-        pub async fn scan(&self) -> Result<Vec<#struct_name>, aws_sdk_dynamodb::error::ScanError> {
+        pub async fn scan(&self) -> Result<Vec<#struct_name>, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::ScanError>> {
             let items: Result<Vec<std::collections::HashMap<std::string::String, aws_sdk_dynamodb::model::AttributeValue>>, _> = self.client.scan()
                 .table_name(&self.table)
                 .into_paginator()
@@ -248,9 +248,11 @@ pub fn scan_method(struct_name: &Ident) -> proc_macro2::TokenStream {
                 .collect()
                 .await;
 
-            let mapped_items: Vec<#struct_name> = items.expect("TODO map tokio error onto own error").iter().map(|i| i.into()).collect(); // TODO, the error returned is prob from tokio and cannot just be mapped onto scan
-
-            Ok(mapped_items)
+            items
+            .map(|v| v.iter()
+                .map(|i| i.into())
+                .collect()
+            )
         }
     }
 }
