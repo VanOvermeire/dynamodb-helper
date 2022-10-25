@@ -53,13 +53,6 @@ async fn main() {
         #[partition]
         partition_key: String,
         a_number: u32,
-        true_or_false: bool,
-        some_string: String,
-        number_liz: Vec<i16>,
-        string_list: Vec<String>,
-        a_map: HashMap<String, String>,
-        optional_string: Option<String>,
-        optional_number: Option<i32>,
     }
 }
 
@@ -74,6 +67,13 @@ mod tests {
         #[partition]
         partition_key: String,
         value: i32,
+        true_or_false: bool,
+        some_string: String,
+        number_liz: Vec<i16>,
+        string_list: Vec<String>,
+        a_map: HashMap<String, String>,
+        optional_string: Option<String>,
+        optional_number: Option<i32>,
     }
 
     #[tokio::test]
@@ -81,6 +81,13 @@ mod tests {
         let _e = ExampleTestStruct {
             partition_key: "example".to_string(),
             value: 0,
+            true_or_false: false,
+            some_string: "".to_string(),
+            number_liz: vec![],
+            string_list: vec![],
+            a_map: Default::default(),
+            optional_string: None,
+            optional_number: None
         };
         let _help = ExampleTestStructDb::build(aws_sdk_dynamodb::Region::new("eu-west-1"), "exampleTable").await;
     }
