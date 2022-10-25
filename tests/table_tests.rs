@@ -3,6 +3,8 @@ pub mod util;
 use aws_sdk_dynamodb::model::KeyType;
 use util::*;
 
+// TODO once we've decided on the how, test some failures
+
 #[tokio::test]
 async fn should_be_able_to_create_a_table() {
     let create_table = "createTableTable";

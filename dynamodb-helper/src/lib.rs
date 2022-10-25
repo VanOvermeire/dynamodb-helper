@@ -18,7 +18,8 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
     let name = ast.ident;
     let helper_name = format!("{}Db", name);
     let helper_ident = Ident::new(&helper_name, name.span());
-
+    let error_name = format!("{}Error", helper_name);
+    let error_ident = Ident::new(&error_name, name.span());
 
     let fields = match ast.data {
         Struct(DataStruct { fields: Named(FieldsNamed { ref named, .. }), .. }) => named,
@@ -26,6 +27,8 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
     };
 
     let exclusion_list = get_macro_attribute(&ast.attrs, "exclusion");
+
+    let errors = generate_helper_error(&error_ident);
 
     let partition_key_ident_and_type = get_ident_and_type_of_field_annotated_with(fields, "partition").expect("Partition key should be defined (using the field attribute #[partition])");
     let range_key_ident_and_type = get_ident_and_type_of_field_annotated_with(fields, "range");
@@ -43,7 +46,7 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
         create_table_method(partition_key_ident_and_type, range_key_ident_and_type), "create_table", &exclusion_list
     );
     let delete_table = tokenstream_or_empty_if_exclusion(
-        delete_table_method(), "delete_table", &exclusion_list
+        delete_table_method(&error_ident), "delete_table", &exclusion_list
     );
     let put = tokenstream_or_empty_if_exclusion(
         put_method(&name), "put", &exclusion_list,
@@ -57,6 +60,7 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
     let scan = tokenstream_or_empty_if_exclusion(
         scan_method(&name), "scan", &exclusion_list,
     );
+
 
     let public_version = quote! {
         #from_struct_for_hashmap
@@ -81,6 +85,8 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
             #delete
             #scan
         }
+
+        #errors
     };
 
     public_version.into()

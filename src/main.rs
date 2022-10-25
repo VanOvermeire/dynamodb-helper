@@ -26,39 +26,6 @@ impl TestDB {
             table,
         }
     }
-
-    async fn t(&self) -> Result<Vec<TestStruct>, SomeErr> {
-        let items: Result<Vec<std::collections::HashMap<std::string::String, aws_sdk_dynamodb::model::AttributeValue>>, _> = self.client.scan()
-            .table_name(&self.table)
-            .into_paginator()
-            .items()
-            .send()
-            .collect()
-            .await;
-
-        let mapped_items: Vec<TestStruct> = items?.iter().map(|i| i.into()).collect();
-
-        Ok(mapped_items)
-    }
-}
-
-#[derive(Debug)]
-enum SomeErr {
-    ScanError
-}
-
-impl Display for SomeErr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Tokio Or Aws Scan Error") // TODO
-    }
-}
-
-impl Error for SomeErr {}
-
-impl From<SdkError<ScanError>> for SomeErr {
-    fn from(_: SdkError<ScanError>) -> Self {
-        SomeErr::ScanError
-    }
 }
 
 impl From<TestStruct> for HashMap<String, AttributeValue> {

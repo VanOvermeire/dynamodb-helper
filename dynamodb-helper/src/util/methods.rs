@@ -139,8 +139,8 @@ pub fn batch_get(struct_name: &Ident, partition_key_ident_and_type: (&Ident, &Ty
 
         quote! {
             pub async fn batch_get(&self, keys: Vec<(#partition_key_type, #range_key_type)>) -> Result<Vec<#struct_name>, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::BatchGetItemError>> {
-                let mapped_keys: Vec<HashMap<String, AttributeValue>> = keys.into_iter().map(|(partition, range)| {
-                    HashMap::from([
+                let mapped_keys: Vec<std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>> = keys.into_iter().map(|(partition, range)| {
+                    std::collections::HashMap::from([
                         (#partition_key_name.to_string(), #partition_key_attribute_value),
                         (#range_key_name.to_string(), #range_key_attribute_value),
                     ])
@@ -150,7 +150,7 @@ pub fn batch_get(struct_name: &Ident, partition_key_ident_and_type: (&Ident, &Ty
                     .set_keys(Some(mapped_keys))
                     .build();
 
-                let mut table_map = HashMap::from([
+                let mut table_map = std::collections::HashMap::from([
                     (self.table.to_string(), attrs)
                 ]);
 
@@ -174,8 +174,8 @@ pub fn batch_get(struct_name: &Ident, partition_key_ident_and_type: (&Ident, &Ty
     } else {
         quote! {
             pub async fn batch_get(&self, keys: Vec<#partition_key_type>) -> Result<Vec<#struct_name>, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::BatchGetItemError>> {
-                let mapped_keys: Vec<HashMap<String, AttributeValue>> = keys.into_iter().map(|partition| {
-                    HashMap::from([
+                let mapped_keys: Vec<std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>> = keys.into_iter().map(|partition| {
+                    std::collections::HashMap::from([
                         (#partition_key_name.to_string(), #partition_key_attribute_value)
                     ])
                 }).collect();
@@ -184,7 +184,7 @@ pub fn batch_get(struct_name: &Ident, partition_key_ident_and_type: (&Ident, &Ty
                     .set_keys(Some(mapped_keys))
                     .build();
 
-                let mut table_map = HashMap::from([
+                let mut table_map = std::collections::HashMap::from([
                     (self.table.to_string(), attrs)
                 ]);
 
@@ -211,7 +211,7 @@ pub fn batch_get(struct_name: &Ident, partition_key_ident_and_type: (&Ident, &Ty
 pub fn batch_put_method(struct_name: &Ident) -> proc_macro2::TokenStream {
     quote! {
         pub async fn batch_put(&self, items: Vec<#struct_name>) -> Result<aws_sdk_dynamodb::output::BatchWriteItemOutput, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::BatchWriteItemError>> {
-            let items_as_maps: Vec<HashMap<String, aws_sdk_dynamodb::model::AttributeValue>> = items.into_iter()
+            let items_as_maps: Vec<std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>> = items.into_iter()
                 .map(|i| i.into())
                 .collect();
 
@@ -225,7 +225,7 @@ pub fn batch_put_method(struct_name: &Ident) -> proc_macro2::TokenStream {
                 })
                 .collect();
 
-            let mut requests_per_table = HashMap::new();
+            let mut requests_per_table = std::collections::HashMap::new();
             requests_per_table.insert(self.table.to_string(), requests);
 
             self.client
@@ -349,13 +349,14 @@ pub fn create_table_method(partition_key_ident_and_type: (&Ident, &Type), range_
     }
 }
 
-pub fn delete_table_method() -> proc_macro2::TokenStream {
+pub fn delete_table_method(error_name: &Ident) -> proc_macro2::TokenStream {
     quote! {
-        pub async fn delete_table(&self) -> Result<aws_sdk_dynamodb::output::DeleteTableOutput, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::DeleteTableError>> {
+        pub async fn delete_table(&self) -> Result<aws_sdk_dynamodb::output::DeleteTableOutput, #error_name> {
             self.client.delete_table()
                 .table_name(&self.table)
                 .send()
                 .await
+                .map_err(|err| err.into())
         }
     }
 }
