@@ -6,6 +6,29 @@ use syn::{Field};
 use syn::token::Comma;
 use crate::{get_relevant_field_info, possibly_optional_dynamo_type, DynamoType, IterableDynamoType};
 
+// pub fn from_hashmap_to_struct(struct_name: &Ident, fields: &Punctuated<Field, Comma>) -> proc_macro2::TokenStream {
+//     quote! {
+//         impl TryFrom<std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>> for #struct_name {
+//             type Error = DynamoDBHelper; // TODO
+//
+//             fn try_from(value: std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>) -> Result<Self, Self::Error> {
+//                 Ok(#struct_name {
+//                     #(#struct_inserts)*
+//                 })
+//             }
+//         }
+//         impl TryFrom<&std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>> for #struct_name {
+//             type Error = DynamoDBHelper; // TODO
+//
+//             fn try_from(value: std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>) -> Result<Self, Self::Error> {
+//                 Ok(#struct_name {
+//                     #(#struct_inserts_copy)*
+//                 })
+//             }
+//         }
+//     }
+// }
+
 // TODO tryFrom so we can avoid the expects
 pub fn build_from_hashmap_for_struct(struct_name: &Ident, fields: &Punctuated<Field, Comma>) -> proc_macro2::TokenStream {
     let struct_inserts = fields.iter().map(|f| build_from_hashmap_for_individual_field(f));

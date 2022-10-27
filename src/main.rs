@@ -45,129 +45,141 @@ impl TestDB {
     // }
 }
 
-// #[derive(Debug)]
-// enum GetError {
-//     ParseError(String),
-//     SdkError(aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::GetItemError>),
-// }
-//
-// #[derive(Debug)]
-// enum GetByPartitionError {
-//     ParseError(String),
-//     SdkError(aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::QueryError>),
-// }
-//
-// #[derive(Debug)]
-// enum BatchGetError {
-//     ParseError(String),
-//     SdkError(aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::BatchGetItemError>),
-// }
-//
-// #[derive(Debug)]
-// enum ScanError {
-//     ParseError(String),
-//     SdkError(aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::ScanError>),
-// }
-//
-// impl std::fmt::Display for GetError {
-//     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-//         write!(f, "Get error") // TODO
-//     }
-// }
-//
-// impl std::error::Error for GetError {}
-//
-// impl Display for GetByPartitionError {
-//     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-//         write!(f, "Get by partition error") // TODO
-//     }
-// }
-//
-// impl std::error::Error for GetByPartitionError {}
-//
-// impl Display for BatchGetError {
-//     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-//         write!(f, "Batch get error") // TODO
-//     }
-// }
-//
-// impl std::error::Error for BatchGetError {}
-//
-// impl Display for ScanError {
-//     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-//         write!(f, "Scan error") // TODO
-//     }
-// }
-//
-// impl std::error::Error for ScanError {}
-//
-// impl From<aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::GetItemError>> for GetError {
-//     fn from(err: aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::GetItemError>) -> Self {
-//         GetError::SdkError(err)
-//     }
-// }
-//
-// impl From<aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::QueryError>> for GetByPartitionError {
-//     fn from(err: aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::QueryError>) -> Self {
-//         GetByPartitionError::SdkError(err)
-//     }
-// }
-//
-// impl From<aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::BatchGetItemError>> for BatchGetError {
-//     fn from(err: aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::BatchGetItemError>) -> Self {
-//         BatchGetError::SdkError(err)
-//     }
-// }
-//
-// impl From<aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::ScanError>> for ScanError {
-//     fn from(err: aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::ScanError>) -> Self {
-//         ScanError::SdkError(err)
-//     }
-// }
+#[derive(Debug)]
+enum GetError {
+    ParseError(String),
+    SdkError(aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::GetItemError>),
+}
 
 #[derive(Debug)]
-enum DynamoDBHelper {
-    ParseError(String)
+enum GetByPartitionError {
+    ParseError(String),
+    SdkError(aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::QueryError>),
 }
 
-impl Display for DynamoDBHelper {
+#[derive(Debug)]
+enum BatchGetError {
+    ParseError(String),
+    SdkError(aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::BatchGetItemError>),
+}
+
+#[derive(Debug)]
+enum ScanError {
+    ParseError(String),
+    SdkError(aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::ScanError>),
+}
+
+#[derive(Debug)]
+struct ParseError {
+    message: String,
+}
+
+impl Display for ParseError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Something")
+        write!(f, "Parse error") // TODO
     }
 }
 
-impl Error for DynamoDBHelper {}
+impl std::error::Error for ParseError {}
 
-impl From<Infallible> for DynamoDBHelper {
-    fn from(_: Infallible) -> Self {
-        DynamoDBHelper::ParseError("YO".to_string())
+impl From<ParseError> for GetError {
+    fn from(err: ParseError) -> Self {
+        GetError::ParseError(err.message)
     }
 }
 
-impl TryFrom<std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>> for TestStruct {
-    type Error = DynamoDBHelper;
-
-    fn try_from(value: HashMap<String, AttributeValue>) -> Result<Self, Self::Error> {
-        let first: Option<Result<String, DynamoDBHelper>> = value.get("another")
-            .map
-            (
-                |v| v.as_s().map_err(|_| DynamoDBHelper::ParseError("conversion to s failed".to_string())).map(|v| v.to_string())
-            );
-        let second = first.transpose()?;
-
-        // first.map(|v| str::parse(v))?)
-
-        // let t = value.get("another").map(|v| v.as_s().map_err(|_| DynamoDBHelper::ParseError("conversion to s failed".to_string()))?
-        //     .map(|v| str::parse(v)));
-
-
-        Ok(TestStruct {
-            partition_key: value.get("partition_key").ok_or_else(|| DynamoDBHelper::ParseError("Obligatory not present".to_string()))?.as_s().map_err(|_| DynamoDBHelper::ParseError("conversion to s failed".to_string())).map(|v| str::parse(v))??,
-            value: 0,
-            another: second,
-        })
+impl std::fmt::Display for GetError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Get error") // TODO
     }
 }
+
+impl std::error::Error for GetError {}
+
+impl Display for GetByPartitionError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Get by partition error") // TODO
+    }
+}
+
+impl std::error::Error for GetByPartitionError {}
+
+impl Display for BatchGetError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Batch get error") // TODO
+    }
+}
+
+impl std::error::Error for BatchGetError {}
+
+impl Display for ScanError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Scan error") // TODO
+    }
+}
+
+impl std::error::Error for ScanError {}
+
+impl From<aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::GetItemError>> for GetError {
+    fn from(err: aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::GetItemError>) -> Self {
+        GetError::SdkError(err)
+    }
+}
+
+impl From<aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::QueryError>> for GetByPartitionError {
+    fn from(err: aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::QueryError>) -> Self {
+        GetByPartitionError::SdkError(err)
+    }
+}
+
+impl From<aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::BatchGetItemError>> for BatchGetError {
+    fn from(err: aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::BatchGetItemError>) -> Self {
+        BatchGetError::SdkError(err)
+    }
+}
+
+impl From<aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::ScanError>> for ScanError {
+    fn from(err: aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::ScanError>) -> Self {
+        ScanError::SdkError(err)
+    }
+}
+
+// #[derive(Debug)]
+// enum DynamoDBHelper {
+//     ParseError(String)
+// }
+//
+// impl Display for DynamoDBHelper {
+//     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+//         write!(f, "Something")
+//     }
+// }
+//
+// impl Error for DynamoDBHelper {}
+//
+// impl From<Infallible> for DynamoDBHelper {
+//     fn from(_: Infallible) -> Self {
+//         DynamoDBHelper::ParseError("YO".to_string())
+//     }
+// }
+
+// impl TryFrom<std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>> for TestStruct {
+//     type Error = DynamoDBHelper;
+//
+//     fn try_from(value: HashMap<String, AttributeValue>) -> Result<Self, Self::Error> {
+//         // value.get("another")
+//         //     .map
+//         //     (
+//         //         |v| v.as_s().map_err(|_| DynamoDBHelper::ParseError("conversion to s failed".to_string())).map(|v| v.to_string())
+//         //     ).transpose()?;
+//
+//         Ok(TestStruct {
+//             partition_key: value.get("partition_key").ok_or_else(|| DynamoDBHelper::ParseError("Obligatory not present".to_string()))?.as_s().map_err(|_| DynamoDBHelper::ParseError("conversion to s failed".to_string())).map(|v| str::parse(v))??,
+//             value: 0,
+//             another: value.get("another").map(|v| v.as_s().map_err(|_| DynamoDBHelper::ParseError("conversion to s failed".to_string())).map(|v| v.to_string())).transpose()?,
+//         })
+//     }
+// }
 
 // impl From<TestStruct> for HashMap<String, AttributeValue> {
 //     fn from(_: TestStruct) -> Self {
