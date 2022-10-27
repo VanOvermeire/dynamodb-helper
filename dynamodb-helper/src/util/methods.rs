@@ -351,14 +351,13 @@ pub fn create_table_method(partition_key_ident_and_type: (&Ident, &Type), range_
     }
 }
 
-pub fn delete_table_method(error_name: &Ident) -> proc_macro2::TokenStream {
+pub fn delete_table_method() -> proc_macro2::TokenStream {
     quote! {
-        pub async fn delete_table(&self) -> Result<aws_sdk_dynamodb::output::DeleteTableOutput, #error_name> {
+        pub async fn delete_table(&self) -> Result<aws_sdk_dynamodb::output::DeleteTableOutput, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::DeleteTableError>> {
             self.client.delete_table()
                 .table_name(&self.table)
                 .send()
                 .await
-                .map_err(|err| err.into())
         }
     }
 }
