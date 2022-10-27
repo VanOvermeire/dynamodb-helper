@@ -57,7 +57,7 @@ pub fn generate_helper_error(struct_name: &Ident) -> proc_macro2::TokenStream {
         }
 
         #[derive(Debug)]
-        struct #parse_error {
+        pub struct #parse_error {
             message: String,
         }
 
@@ -68,13 +68,21 @@ pub fn generate_helper_error(struct_name: &Ident) -> proc_macro2::TokenStream {
         }
 
         impl std::error::Error for #parse_error {}
+
+        impl From<Infallible> for #parse_error {
+            fn from(_: Infallible) -> Self {
+                #parse_error {
+                    message: "Could parse attribute into string".to_string()
+                }
+            }
+        }
     }
 }
 
 fn generate_impl_error(error: &Ident, aws_error: &Ident, parse_error: &Ident) -> proc_macro2::TokenStream {
     quote! {
         #[derive(Debug)]
-        enum #error {
+        pub enum #error {
             ParseError(String),
             AwsError(aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::#aws_error>),
         }

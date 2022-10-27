@@ -26,43 +26,44 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
 
     let exclusion_list = get_macro_attribute(&ast.attrs, "exclusion");
 
-    // let (get_error, get_by_partition_error, batch_get_error, scan_error) = generate_error_names(&helper_ident);
+    let (get_error, get_by_partition_error, batch_get_error, scan_error, parse_error) = generate_error_names(&helper_ident);
     let errors = generate_helper_error(&helper_ident);
 
     let partition_key_ident_and_type = get_ident_and_type_of_field_annotated_with(fields, "partition").expect("Partition key should be defined (using the field attribute #[partition])");
     let range_key_ident_and_type = get_ident_and_type_of_field_annotated_with(fields, "range");
 
-    let from_struct_for_hashmap = build_from_struct_for_hashmap(&name, fields);
-    let from_hashmap_for_struct = build_from_hashmap_for_struct(&name, fields);
+    let from_struct_for_hashmap = from_struct_for_hashmap(&name, fields);
+    let try_from_hashmap_for_struct = try_from_hashmap_to_struct(&name, &parse_error, fields);
 
     let new = new_method(&helper_ident);
     let build = build_method(&helper_ident);
 
-    let gets = get_methods(&name, partition_key_ident_and_type, range_key_ident_and_type);
-    let batch_get = batch_get(&name, partition_key_ident_and_type, range_key_ident_and_type);
+    let gets = get_methods(&name, &get_error, &get_by_partition_error, partition_key_ident_and_type, range_key_ident_and_type);
+    // TODO reenable stuff (in methods as well)
+    // let batch_get = batch_get(&name, partition_key_ident_and_type, range_key_ident_and_type);
 
-    let create_table = tokenstream_or_empty_if_exclusion(
-        create_table_method(partition_key_ident_and_type, range_key_ident_and_type), "create_table", &exclusion_list
-    );
-    let delete_table = tokenstream_or_empty_if_exclusion(
-        delete_table_method(), "delete_table", &exclusion_list
-    );
-    let put = tokenstream_or_empty_if_exclusion(
-        put_method(&name), "put", &exclusion_list,
-    );
-    let batch_put = tokenstream_or_empty_if_exclusion(
-        batch_put_method(&name), "batch_put", &exclusion_list,
-    );
-    let delete = tokenstream_or_empty_if_exclusion(
-        delete_method(&name, partition_key_ident_and_type, range_key_ident_and_type), "delete", &exclusion_list,
-    );
-    let scan = tokenstream_or_empty_if_exclusion(
-        scan_method(&name), "scan", &exclusion_list,
-    );
+    // let create_table = tokenstream_or_empty_if_exclusion(
+    //     create_table_method(partition_key_ident_and_type, range_key_ident_and_type), "create_table", &exclusion_list
+    // );
+    // let delete_table = tokenstream_or_empty_if_exclusion(
+    //     delete_table_method(), "delete_table", &exclusion_list
+    // );
+    // let put = tokenstream_or_empty_if_exclusion(
+    //     put_method(&name), "put", &exclusion_list,
+    // );
+    // let batch_put = tokenstream_or_empty_if_exclusion(
+    //     batch_put_method(&name), "batch_put", &exclusion_list,
+    // );
+    // let delete = tokenstream_or_empty_if_exclusion(
+    //     delete_method(&name, partition_key_ident_and_type, range_key_ident_and_type), "delete", &exclusion_list,
+    // );
+    // let scan = tokenstream_or_empty_if_exclusion(
+    //     scan_method(&name), "scan", &exclusion_list,
+    // );
 
     let public_version = quote! {
         #from_struct_for_hashmap
-        #from_hashmap_for_struct
+        #try_from_hashmap_for_struct
 
         pub struct #helper_ident {
             pub client: aws_sdk_dynamodb::Client,
@@ -73,15 +74,15 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
             #new
             #build
 
-            #create_table
-            #delete_table
+            // #create_table
+            // #delete_table
 
-            #put
+            // #put
             #gets
-            #batch_get
-            #batch_put
-            #delete
-            #scan
+            // #batch_get
+            // #batch_put
+            // #delete
+            // #scan
         }
 
         #errors

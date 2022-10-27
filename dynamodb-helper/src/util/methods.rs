@@ -72,7 +72,7 @@ pub fn delete_method(struct_name: &Ident, partition_key_ident_and_type: (&Ident,
     }
 }
 
-pub fn get_methods(struct_name: &Ident, partition_key_ident_and_type: (&Ident, &Type), range_key_ident_and_type: Option<(&Ident, &Type)>) -> proc_macro2::TokenStream {
+pub fn get_methods(struct_name: &Ident, get_error: &Ident, get_by_partition_error: &Ident, partition_key_ident_and_type: (&Ident, &Type), range_key_ident_and_type: Option<(&Ident, &Type)>) -> proc_macro2::TokenStream {
     let partition_key_name = partition_key_ident_and_type.0.to_string();
     let partition_key_type = partition_key_ident_and_type.1;
     let partition_key_attribute_value = get_attribute_type_for_key(partition_key_type, Ident::new("partition", struct_name.span()));
@@ -83,7 +83,7 @@ pub fn get_methods(struct_name: &Ident, partition_key_ident_and_type: (&Ident, &
         let range_key_attribute_value = get_attribute_type_for_key(range_key_type, Ident::new("range", struct_name.span()));
 
         quote! {
-            pub async fn get_by_partition_key(&self, partition: #partition_key_type) -> Result<Vec<#struct_name>, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::QueryError>> {
+            pub async fn get_by_partition_key(&self, partition: #partition_key_type) -> Result<Vec<#struct_name>, #get_by_partition_error> {
                 let result = self.client.query()
                     .table_name(&self.table)
                     .key_condition_expression("#pk = :pkval")
@@ -96,32 +96,34 @@ pub fn get_methods(struct_name: &Ident, partition_key_ident_and_type: (&Ident, &
                     .map(|v| v.to_vec())
                     .unwrap_or_else(|| vec![])
                     .iter()
-                    .map(|v| v.into())
-                    .collect();
+                    .map(|v| v.try_into())
+                    .collect::<Result<Vec<_>,_>>();
 
-                Ok(mapped_result)
+                mapped_result
             }
 
-            pub async fn get(&self, partition: #partition_key_type, range: #range_key_type) -> Result<Option<#struct_name>, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::GetItemError>> {
+            pub async fn get(&self, partition: #partition_key_type, range: #range_key_type) -> Result<Option<#struct_name>, #get_error> {
                 let result = self.client.get_item()
                     .table_name(&self.table)
                     .key(#partition_key_name, #partition_key_attribute_value)
                     .key(#range_key_name, #range_key_attribute_value)
                     .send()
                     .await?;
-                Ok(result.item.map(|v| v.into()))
+                let mapped = result.item.map(|v| v.try_into()).transpose()?;
+                Ok(mapped)
             }
         }
     } else {
+        // TODO
         quote! {
-            pub async fn get(&self, partition: #partition_key_type) -> Result<Option<#struct_name>, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::GetItemError>> {
-                let result = self.client.get_item()
-                    .table_name(&self.table)
-                    .key(#partition_key_name, #partition_key_attribute_value)
-                    .send()
-                    .await?;
-                Ok(result.item.map(|v| v.into()))
-            }
+            // pub async fn get(&self, partition: #partition_key_type) -> Result<Option<#struct_name>, #get_error> {
+            //     let result = self.client.get_item()
+            //         .table_name(&self.table)
+            //         .key(#partition_key_name, #partition_key_attribute_value)
+            //         .send()
+            //         .await?;
+            //     result.item.map(|v| v.try_into()).transpose()
+            // }
         }
     }
 }
@@ -164,7 +166,7 @@ pub fn batch_get(struct_name: &Ident, partition_key_ident_and_type: (&Ident, &Ty
 
                     items_found
                     .iter()
-                    .map(|r| r.into())
+                    .map(|r| r.try_into()?)
                     .collect()
                 }).unwrap_or_else(|| vec![]);
 
@@ -198,7 +200,7 @@ pub fn batch_get(struct_name: &Ident, partition_key_ident_and_type: (&Ident, &Ty
 
                     items_found
                     .iter()
-                    .map(|r| r.into())
+                    .map(|r| r.try_into()?)
                     .collect()
                 }).unwrap_or_else(|| vec![]);
 
@@ -250,7 +252,7 @@ pub fn scan_method(struct_name: &Ident) -> proc_macro2::TokenStream {
 
             items
             .map(|v| v.iter()
-                .map(|i| i.into())
+                .map(|i| i.try_into()?)
                 .collect()
             )
         }

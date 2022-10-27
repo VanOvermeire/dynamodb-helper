@@ -6,54 +6,34 @@ use syn::{Field};
 use syn::token::Comma;
 use crate::{get_relevant_field_info, possibly_optional_dynamo_type, DynamoType, IterableDynamoType};
 
-// pub fn from_hashmap_to_struct(struct_name: &Ident, fields: &Punctuated<Field, Comma>) -> proc_macro2::TokenStream {
-//     quote! {
-//         impl TryFrom<std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>> for #struct_name {
-//             type Error = DynamoDBHelper; // TODO
-//
-//             fn try_from(value: std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>) -> Result<Self, Self::Error> {
-//                 Ok(#struct_name {
-//                     #(#struct_inserts)*
-//                 })
-//             }
-//         }
-//         impl TryFrom<&std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>> for #struct_name {
-//             type Error = DynamoDBHelper; // TODO
-//
-//             fn try_from(value: std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>) -> Result<Self, Self::Error> {
-//                 Ok(#struct_name {
-//                     #(#struct_inserts_copy)*
-//                 })
-//             }
-//         }
-//     }
-// }
-
-// TODO tryFrom so we can avoid the expects
-pub fn build_from_hashmap_for_struct(struct_name: &Ident, fields: &Punctuated<Field, Comma>) -> proc_macro2::TokenStream {
-    let struct_inserts = fields.iter().map(|f| build_from_hashmap_for_individual_field(f));
+pub fn try_from_hashmap_to_struct(struct_name: &Ident, error: &Ident, fields: &Punctuated<Field, Comma>) -> proc_macro2::TokenStream {
+    let struct_inserts = fields.iter().map(|f| try_from_hashmap_for_individual_field(f, error));
     let struct_inserts_copy = struct_inserts.clone(); // quote takes ownership and we need the inserts twice...
 
     quote! {
-        impl From<std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>> for #struct_name {
-            fn from(map: std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>) -> Self {
-                #struct_name {
+        impl TryFrom<std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>> for #struct_name {
+            type Error = #error;
+
+            fn try_from(map: std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>) -> Result<Self, Self::Error> {
+                Ok(#struct_name {
                     #(#struct_inserts)*
-                }
+                })
             }
         }
+        impl TryFrom<&std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>> for #struct_name {
+            type Error = #error;
 
-        impl From<&std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>> for #struct_name {
-            fn from(map: &std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>) -> Self {
-                #struct_name {
+            fn try_from(map: &std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>) -> Result<Self, Self::Error> {
+                Ok(#struct_name {
                     #(#struct_inserts_copy)*
-                }
+                })
             }
         }
     }
 }
 
-fn build_from_hashmap_for_individual_field(f: &Field) -> TokenStream {
+// TODO remove the expects
+fn try_from_hashmap_for_individual_field(f: &Field, err: &Ident) -> TokenStream {
     let (name, name_as_string, field_type) = get_relevant_field_info(f);
 
     match possibly_optional_dynamo_type(field_type) {
@@ -78,8 +58,12 @@ fn build_from_hashmap_for_individual_field(f: &Field) -> TokenStream {
             match v {
                 IterableDynamoType::Simple(simp) => {
                     match simp {
-                        DynamoType::String => quote!(#name: map.get(#name_as_string).map(|v| v.as_s().expect("Attribute value conversion to work")).map(|v| v.to_string()).expect("Value for struct property to be present"),),
+                        DynamoType::String => quote!(#name: map.get(#name_as_string).ok_or_else(|| #err { message: format!("Did not find required attribute {}", #name_as_string) })?.as_s().map_err(|_| #err { message: format!("Could not convert {} from Dynamo String", #name_as_string) }).map(|v| str::parse(v))??,),
+                        // DynamoType::String => quote!(#name: map.get(#name_as_string).map(|v| v.as_s().expect("Attribute value conversion to work")).map(|v| v.to_string()).expect("Value for struct property to be present"),),
+
+                        // DynamoType::Number => quote!(#name: map.get(#name_as_string).ok_or_else(|| #err { message: format!("Did not find required attribute {}", #name_as_string) })?.as_n().map_err(|_| #err { message: format!("Could not convert {} from Dynamo Number", #name_as_string) }).map(|v| str::parse(v))??,),
                         DynamoType::Number => quote!(#name: map.get(#name_as_string).map(|v| v.as_n().expect("Attribute value conversion to work")).map(|v| str::parse(v).expect("To be able to parse a number from Dynamo")).expect("Value for struct property to be present"),),
+
                         DynamoType::Boolean => quote!(#name: map.get(#name_as_string).map(|v| *v.as_bool().expect("Attribute value conversion to work")).expect("Value for struct property to be present"),)
                     }
                 }
@@ -121,7 +105,7 @@ fn build_from_hashmap_for_map_items(simp1: DynamoType, simp2: DynamoType, name: 
     }
 }
 
-pub fn build_from_struct_for_hashmap(struct_name: &Ident, fields: &Punctuated<Field, Comma>) -> proc_macro2::TokenStream {
+pub fn from_struct_for_hashmap(struct_name: &Ident, fields: &Punctuated<Field, Comma>) -> proc_macro2::TokenStream {
     let hashmap_inserts = fields.iter().map(|f| {
         let (name, name_as_string, field_type) = get_relevant_field_info(f);
 
