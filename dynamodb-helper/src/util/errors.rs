@@ -20,14 +20,14 @@ pub fn generate_helper_error(struct_name: &Ident) -> proc_macro2::TokenStream {
     let (get_error, get_by_partition_error, batch_get_error, scan_error, parse_error) = generate_error_names(struct_name);
 
     let error_copies = [
-        (get_error.clone(), Ident::new("GetItemError", struct_name.span())),
-        (get_by_partition_error.clone(), Ident::new("QueryError", struct_name.span())),
-        (batch_get_error.clone(), Ident::new("BatchGetItemError", struct_name.span())),
-        (scan_error.clone(), Ident::new("ScanError", struct_name.span())),
+        (&get_error, Ident::new("GetItemError", struct_name.span())),
+        (&get_by_partition_error, Ident::new("QueryError", struct_name.span())),
+        (&batch_get_error, Ident::new("BatchGetItemError", struct_name.span())),
+        (&scan_error, Ident::new("ScanError", struct_name.span())),
     ];
     let impl_errors = error_copies
         .iter()
-        .map(|error_names| generate_impl_error(&error_names.0, &error_names.1, &parse_error));
+        .map(|error_names| generate_impl_error(error_names.0, &error_names.1, &parse_error));
 
     quote! {
         #(#impl_errors)*
