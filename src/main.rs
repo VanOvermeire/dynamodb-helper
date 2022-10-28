@@ -106,7 +106,7 @@ async fn main() {
         #[partition]
         partition_key: String,
         a_number: u32,
-        a_temp: HashMap<String, String>,
+        // a_temp: Option<i32>,
     }
 }
 

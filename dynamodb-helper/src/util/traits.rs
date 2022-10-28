@@ -42,10 +42,7 @@ fn try_from_hashmap_for_individual_field(f: &Field, err: &Ident) -> TokenStream 
                 IterableDynamoType::Simple(simp) => {
                     match simp {
                         DynamoType::String => quote!(#name: map.get(#name_as_string).map(|v| v.as_s().map_err(|_| #err { message: format!("Could not convert {} from Dynamo String", #name_as_string) }).map(|v| v.to_string())).transpose()?,),
-
-                        // DynamoType::String => quote!(#name: map.get(#name_as_string).map(|v| v.as_s().expect("Attribute value conversion to work")).map(|v| v.to_string()),),
-                        DynamoType::Number => quote!(#name: map.get(#name_as_string).map(|v| v.as_n().expect("Attribute value conversion to work")).map(|v| str::parse(v).expect("To be able to parse a number from Dynamo")),),
-
+                        DynamoType::Number => quote!(#name: map.get(#name_as_string).map(|v| v.as_n().map_err(|_| #err { message: format!("Could not convert {} from Dynamo Number", #name_as_string) }).and_then(|v| str::parse(v).map_err(|_| #err { message: format!("Could not parse number for {}", #name_as_string) }))).transpose()?,),
                         DynamoType::Boolean => quote!(#name: map.get(#name_as_string).map(|v| v.as_bool().map(|v| *v).map_err(|_| #err { message: format!("Could not convert {} from Dynamo String", #name_as_string) })).transpose()?,)
                     }
                 }
@@ -63,10 +60,7 @@ fn try_from_hashmap_for_individual_field(f: &Field, err: &Ident) -> TokenStream 
                 IterableDynamoType::Simple(simp) => {
                     match simp {
                         DynamoType::String => quote!(#name: map.get(#name_as_string).ok_or_else(|| #err { message: format!("Did not find required attribute {}", #name_as_string) })?.as_s().map_err(|_| #err { message: format!("Could not convert {} from Dynamo String", #name_as_string) }).map(|v| str::parse(v))??,),
-
-                        // DynamoType::String => quote!(#name: map.get(#name_as_string).map(|v| v.as_s().expect("Attribute value conversion to work")).map(|v| v.to_string()).expect("Value for struct property to be present"),),
-                        DynamoType::Number => quote!(#name: map.get(#name_as_string).map(|v| v.as_n().expect("Attribute value conversion to work")).map(|v| str::parse(v).expect("To be able to parse a number from Dynamo")).expect("Value for struct property to be present"),),
-
+                        DynamoType::Number => quote!(#name: map.get(#name_as_string).ok_or_else(|| #err { message: format!("Did not find required attribute {}", #name_as_string) })?.as_n().map_err(|_| #err { message: format!("Could not convert {} from Dynamo Number", #name_as_string) }).and_then(|v| str::parse(v).map_err(|_| #err { message: format!("Could not parse number for {}", #name_as_string) }))?,),
                         DynamoType::Boolean => quote!(#name: map.get(#name_as_string).ok_or_else(|| #err { message: format!("Did not find required attribute {}", #name_as_string) })?.as_bool().map(|v| *v).map_err(|_| #err { message: format!("Could not convert {} from Dynamo Boolean", #name_as_string) })?,)
                     }
                 }
