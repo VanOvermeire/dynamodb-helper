@@ -32,7 +32,6 @@ pub fn try_from_hashmap_to_struct(struct_name: &Ident, error: &Ident, fields: &P
     }
 }
 
-// TODO remove the expects
 fn try_from_hashmap_for_individual_field(f: &Field, err: &Ident) -> TokenStream {
     let (name, name_as_string, field_type) = get_relevant_field_info(f);
 
@@ -46,12 +45,19 @@ fn try_from_hashmap_for_individual_field(f: &Field, err: &Ident) -> TokenStream 
                         DynamoType::Boolean => quote!(#name: map.get(#name_as_string).map(|v| v.as_bool().map(|v| *v).map_err(|_| #err { message: format!("Could not convert {} from Dynamo String", #name_as_string) })).transpose()?,)
                     }
                 }
-                // TODO these two don't work - add to compile test
                 IterableDynamoType::List(simp) => {
-                    build_from_hashmap_for_list_items(simp, name, name_as_string, err)
+                    let mapping = build_from_hashmap_for_list_items(simp, name, name_as_string.clone(), err);
+
+                    quote! {
+                        #name: if map.get(#name_as_string).is_some() { Some(#mapping) } else { None },
+                    }
                 },
                 IterableDynamoType::Map(simp1, simp2) => {
-                    build_from_hashmap_for_map_items(simp1, simp2, name, name_as_string, err)
+                    let mapping = build_from_hashmap_for_map_items(simp1, simp2, name, name_as_string.clone(), err);
+
+                    quote! {
+                        #name: if map.get(#name_as_string).is_some() { Some(#mapping) } else { None },
+                    }
                 }
             }
         }
@@ -65,10 +71,16 @@ fn try_from_hashmap_for_individual_field(f: &Field, err: &Ident) -> TokenStream 
                     }
                 }
                 IterableDynamoType::List(simp) => {
-                    build_from_hashmap_for_list_items(simp, name, name_as_string, err)
+                    let mapping = build_from_hashmap_for_list_items(simp, name, name_as_string.clone(), err);
+                    quote! {
+                        #name: #mapping,
+                    }
                 },
                 IterableDynamoType::Map(simp1, simp2) => {
-                    build_from_hashmap_for_map_items(simp1, simp2, name, name_as_string, err)
+                    let mapping = build_from_hashmap_for_map_items(simp1, simp2, name, name_as_string.clone(), err);
+                    quote! {
+                        #name: #mapping,
+                    }
                 }
             }
         }
@@ -79,12 +91,12 @@ fn build_from_hashmap_for_list_items(simp: DynamoType, name: &Ident, name_as_str
     match simp {
         DynamoType::String => {
             quote! {
-                #name: map.get(#name_as_string).ok_or_else(|| #err { message: format!("Did not find required attribute {}", #name_as_string) })?.as_l().map_err(|_| #err { message: format!("Could not convert {} from Dynamo List", #name_as_string) })?.iter().map(|v| v.as_s().map_err(|_| #err { message: format!("Could not convert list element from DynamoDB string for {}", #name_as_string) }).map(|v| v.clone())).collect::<Result<Vec<_>, _>>()?,
+                map.get(#name_as_string).ok_or_else(|| #err { message: format!("Did not find required attribute {}", #name_as_string) })?.as_l().map_err(|_| #err { message: format!("Could not convert {} from Dynamo List", #name_as_string) })?.iter().map(|v| v.as_s().map_err(|_| #err { message: format!("Could not convert list element from DynamoDB string for {}", #name_as_string) }).map(|v| v.clone())).collect::<Result<Vec<_>, _>>()?
             }
         }
         DynamoType::Number => {
             quote! {
-                #name: map.get(#name_as_string).ok_or_else(|| #err { message: format!("Did not find required attribute {}", #name_as_string) })?.as_l().map_err(|_| #err { message: format!("Could not convert {} from Dynamo List", #name_as_string) })?.iter().map(|v| v.as_s().map_err(|_| #err { message: format!("Could not convert list element from DynamoDB string for {}", #name_as_string) }).and_then(|v| str::parse(v).map_err(|_| #err { message: format!("Could not convert string to number fo {}", #name_as_string) }))).collect::<Result<Vec<_>, _>>()?,
+                map.get(#name_as_string).ok_or_else(|| #err { message: format!("Did not find required attribute {}", #name_as_string) })?.as_l().map_err(|_| #err { message: format!("Could not convert {} from Dynamo List", #name_as_string) })?.iter().map(|v| v.as_s().map_err(|_| #err { message: format!("Could not convert list element from DynamoDB string for {}", #name_as_string) }).and_then(|v| str::parse(v).map_err(|_| #err { message: format!("Could not convert string to number fo {}", #name_as_string) }))).collect::<Result<Vec<_>, _>>()?
             }
         }
         _ => todo!("Only lists with strings or numbers are currently supported")
@@ -95,7 +107,7 @@ fn build_from_hashmap_for_map_items(simp1: DynamoType, simp2: DynamoType, name: 
     match (simp1, simp2) {
         (DynamoType::String, DynamoType::String) => {
             quote! {
-                #name: map.get(#name_as_string).ok_or_else(|| #err { message: format!("Did not find required attribute {}", #name_as_string) })?.as_m().map_err(|_| #err { message: format!("Could not convert {} from Dynamo Map", #name_as_string) })?.iter().map(|v| { if v.1.as_s().is_err() { Err(#err { message: format!("Could not convert from Dynamo String for {}", #name_as_string) }) } else { Ok((v.0.clone(), v.1.as_s().unwrap().clone())) } }).collect::<Result<HashMap<String, String>, _>>()?,
+                map.get(#name_as_string).ok_or_else(|| #err { message: format!("Did not find required attribute {}", #name_as_string) })?.as_m().map_err(|_| #err { message: format!("Could not convert {} from Dynamo Map", #name_as_string) })?.iter().map(|v| { if v.1.as_s().is_err() { Err(#err { message: format!("Could not convert from Dynamo String for {}", #name_as_string) }) } else { Ok((v.0.clone(), v.1.as_s().unwrap().clone())) } }).collect::<Result<HashMap<String, String>, _>>()?
             }
         },
         _ => todo!("Only maps with strings are currently supported")

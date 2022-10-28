@@ -32,6 +32,7 @@ Pull requests with improvements or additional features are welcome. They should 
   - less use of expect, more Result
   - and also tryfrom instead of from
 - support more types of lists and maps
+- Display of errors
 - TODO's in code
 
 ### Possible improvements

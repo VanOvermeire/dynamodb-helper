@@ -114,16 +114,15 @@ pub fn get_methods(struct_name: &Ident, get_error: &Ident, get_by_partition_erro
             }
         }
     } else {
-        // TODO
         quote! {
-            // pub async fn get(&self, partition: #partition_key_type) -> Result<Option<#struct_name>, #get_error> {
-            //     let result = self.client.get_item()
-            //         .table_name(&self.table)
-            //         .key(#partition_key_name, #partition_key_attribute_value)
-            //         .send()
-            //         .await?;
-            //     result.item.map(|v| v.try_into()).transpose()
-            // }
+            pub async fn get(&self, partition: #partition_key_type) -> Result<Option<#struct_name>, #get_error> {
+                let result = self.client.get_item()
+                    .table_name(&self.table)
+                    .key(#partition_key_name, #partition_key_attribute_value)
+                    .send()
+                    .await?;
+                result.item.map(|v| v.try_into()).transpose()
+            }
         }
     }
 }

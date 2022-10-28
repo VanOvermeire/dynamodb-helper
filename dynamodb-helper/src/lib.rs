@@ -39,27 +39,26 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
     let build = build_method(&helper_ident);
 
     let gets = get_methods(&name, &get_error, &get_by_partition_error, partition_key_ident_and_type, range_key_ident_and_type);
-    // TODO reenable stuff (in methods as well)
-    // let batch_get = batch_get(&name, partition_key_ident_and_type, range_key_ident_and_type);
+    let batch_get = batch_get(&name, partition_key_ident_and_type, range_key_ident_and_type);
 
-    // let create_table = tokenstream_or_empty_if_exclusion(
-    //     create_table_method(partition_key_ident_and_type, range_key_ident_and_type), "create_table", &exclusion_list
-    // );
-    // let delete_table = tokenstream_or_empty_if_exclusion(
-    //     delete_table_method(), "delete_table", &exclusion_list
-    // );
-    // let put = tokenstream_or_empty_if_exclusion(
-    //     put_method(&name), "put", &exclusion_list,
-    // );
-    // let batch_put = tokenstream_or_empty_if_exclusion(
-    //     batch_put_method(&name), "batch_put", &exclusion_list,
-    // );
-    // let delete = tokenstream_or_empty_if_exclusion(
-    //     delete_method(&name, partition_key_ident_and_type, range_key_ident_and_type), "delete", &exclusion_list,
-    // );
-    // let scan = tokenstream_or_empty_if_exclusion(
-    //     scan_method(&name), "scan", &exclusion_list,
-    // );
+    let create_table = tokenstream_or_empty_if_exclusion(
+        create_table_method(partition_key_ident_and_type, range_key_ident_and_type), "create_table", &exclusion_list
+    );
+    let delete_table = tokenstream_or_empty_if_exclusion(
+        delete_table_method(), "delete_table", &exclusion_list
+    );
+    let put = tokenstream_or_empty_if_exclusion(
+        put_method(&name), "put", &exclusion_list,
+    );
+    let batch_put = tokenstream_or_empty_if_exclusion(
+        batch_put_method(&name), "batch_put", &exclusion_list,
+    );
+    let delete = tokenstream_or_empty_if_exclusion(
+        delete_method(&name, partition_key_ident_and_type, range_key_ident_and_type), "delete", &exclusion_list,
+    );
+    let scan = tokenstream_or_empty_if_exclusion(
+        scan_method(&name), "scan", &exclusion_list,
+    );
 
     let public_version = quote! {
         #from_struct_for_hashmap
@@ -74,15 +73,15 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
             #new
             #build
 
-            // #create_table
-            // #delete_table
+            #create_table
+            #delete_table
 
-            // #put
+            #put
             #gets
-            // #batch_get
-            // #batch_put
-            // #delete
-            // #scan
+            #batch_get
+            #batch_put
+            #delete
+            #scan
         }
 
         #errors

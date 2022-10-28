@@ -14,7 +14,7 @@ use tokio_stream::StreamExt;
 struct TestStruct {
     partition_key: String,
     value: i32,
-    another: HashMap<String, String>,
+    another: Option<Vec<String>>,
 }
 
 struct TestDB {
@@ -31,55 +31,38 @@ impl TestDB {
     }
 }
 
-#[derive(Debug)]
-enum DynamoDBHelper {
-    ParseError(String)
-}
-
-impl Display for DynamoDBHelper {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Something")
-    }
-}
-
-impl Error for DynamoDBHelper {}
-
-impl From<Infallible> for DynamoDBHelper {
-    fn from(_: Infallible) -> Self {
-        DynamoDBHelper::ParseError("YO".to_string())
-    }
-}
-
-
-impl TryFrom<std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>> for TestStruct {
-    type Error = DynamoDBHelper;
-
-
-
-    fn try_from(map: HashMap<String, AttributeValue>) -> Result<Self, Self::Error> {
-        // let temp = map.get("another").ok_or_else(|| DynamoDBHelper::ParseError("Obligatory not present".to_string()))?.as_l().map_err(|_| DynamoDBHelper::ParseError("conversion to s failed".to_string()))?
-        //     .iter().map(|v| v.as_n().map_err(|_| DynamoDBHelper::ParseError("conversion to s failed".to_string())).and_then(|v| str::parse(v).map_err(|_| DynamoDBHelper::ParseError("yo".to_string())))).collect::<Result<Vec<_>, _>>()?
-        //     ;
-        let temp = map.get("another").ok_or_else(|| DynamoDBHelper::ParseError("Obligatory not present".to_string()))?.as_m()
-            .map_err(|_| DynamoDBHelper::ParseError("conversion from DynamoDB Map failed".to_string()))?.iter()
-            .map(|v| {
-                if v.1.as_s().is_err() {
-                    Err(DynamoDBHelper::ParseError("could not".to_string()))
-                } else {
-                    Ok((v.0.clone(), v.1.as_s().unwrap().clone()))
-                }
-            })
-            .collect::<Result<HashMap<String, String>, _>>()?
-        ;
-
-        Ok(TestStruct {
-            partition_key: map.get("partition_key").ok_or_else(|| DynamoDBHelper::ParseError("Obligatory not present".to_string()))?.as_s().map_err(|_| DynamoDBHelper::ParseError("conversion to s failed".to_string())).map(|v| str::parse(v))??,
-            value: 0,
-            another: temp,
-            // another: value.get("another").map(|v| v.as_s().map_err(|_| DynamoDBHelper::ParseError("conversion to s failed".to_string())).map(|v| v.to_string())).transpose()?,
-        })
-    }
-}
+// #[derive(Debug)]
+// enum DynamoDBHelper {
+//     ParseError(String)
+// }
+//
+// impl Display for DynamoDBHelper {
+//     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+//         write!(f, "Something")
+//     }
+// }
+//
+// impl Error for DynamoDBHelper {}
+//
+// impl From<Infallible> for DynamoDBHelper {
+//     fn from(_: Infallible) -> Self {
+//         DynamoDBHelper::ParseError("YO".to_string())
+//     }
+// }
+//
+//
+// impl TryFrom<std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>> for TestStruct {
+//     type Error = DynamoDBHelper;
+//
+//     fn try_from(map: HashMap<String, AttributeValue>) -> Result<Self, Self::Error> {
+//         Ok(TestStruct {
+//             partition_key: map.get("partition_key").ok_or_else(|| DynamoDBHelper::ParseError("Obligatory not present".to_string()))?.as_s().map_err(|_| DynamoDBHelper::ParseError("conversion to s failed".to_string())).map(|v| str::parse(v))??,
+//             value: 0,
+//             another: if map.get("").is_some() { Some(vec!["yes".to_string()]) } else { None },
+//             // another: value.get("another").map(|v| v.as_s().map_err(|_| DynamoDBHelper::ParseError("conversion to s failed".to_string())).map(|v| v.to_string())).transpose()?,
+//         })
+//     }
+// }
 
 // impl From<TestStruct> for HashMap<String, AttributeValue> {
 //     fn from(_: TestStruct) -> Self {
@@ -106,7 +89,8 @@ async fn main() {
         #[partition]
         partition_key: String,
         a_number: u32,
-        // a_temp: Option<i32>,
+        a_temp: Option<Vec<String>>,
+        a_temp2: Vec<i32>,
     }
 }
 
@@ -128,6 +112,7 @@ mod tests {
         a_map: HashMap<String, String>,
         optional_string: Option<String>,
         optional_number: Option<i32>,
+        optional_number_list: Option<Vec<f32>>,
     }
 
     #[tokio::test]
@@ -142,6 +127,7 @@ mod tests {
             a_map: Default::default(),
             optional_string: None,
             optional_number: None,
+            optional_number_list: None
         };
         let _help = ExampleTestStructDb::build(aws_sdk_dynamodb::Region::new("eu-west-1"), "exampleTable").await;
     }
