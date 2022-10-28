@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::convert::Infallible;
 use std::error::Error;
 use std::fmt::{Display, Formatter, write};
+use std::num::ParseIntError;
 use aws_sdk_dynamodb::Client;
 use aws_sdk_dynamodb::error::{GetItemError, GetItemErrorKind};
 use aws_sdk_dynamodb::model::{AttributeValue};
@@ -13,7 +14,7 @@ use tokio_stream::StreamExt;
 struct TestStruct {
     partition_key: String,
     value: i32,
-    another: Option<String>,
+    another: Vec<i32>,
 }
 
 struct TestDB {
@@ -30,36 +31,44 @@ impl TestDB {
     }
 }
 
-// #[derive(Debug)]
-// enum DynamoDBHelper {
-//     ParseError(String)
-// }
-//
-// impl Display for DynamoDBHelper {
-//     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-//         write!(f, "Something")
-//     }
-// }
-//
-// impl Error for DynamoDBHelper {}
-//
-// impl From<Infallible> for DynamoDBHelper {
-//     fn from(_: Infallible) -> Self {
-//         DynamoDBHelper::ParseError("YO".to_string())
-//     }
-// }
-//
-// impl TryFrom<std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>> for TestStruct {
-//     type Error = DynamoDBHelper;
-//
-//     fn try_from(value: HashMap<String, AttributeValue>) -> Result<Self, Self::Error> {
-//         Ok(TestStruct {
-//             partition_key: value.get("partition_key").ok_or_else(|| DynamoDBHelper::ParseError("Obligatory not present".to_string()))?.as_s().map_err(|_| DynamoDBHelper::ParseError("conversion to s failed".to_string())).map(|v| str::parse(v))??,
-//             value: 0,
-//             another: value.get("another").map(|v| v.as_s().map_err(|_| DynamoDBHelper::ParseError("conversion to s failed".to_string())).map(|v| v.to_string())).transpose()?,
-//         })
-//     }
-// }
+#[derive(Debug)]
+enum DynamoDBHelper {
+    ParseError(String)
+}
+
+impl Display for DynamoDBHelper {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Something")
+    }
+}
+
+impl Error for DynamoDBHelper {}
+
+impl From<Infallible> for DynamoDBHelper {
+    fn from(_: Infallible) -> Self {
+        DynamoDBHelper::ParseError("YO".to_string())
+    }
+}
+
+
+impl TryFrom<std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>> for TestStruct {
+    type Error = DynamoDBHelper;
+
+
+
+    fn try_from(map: HashMap<String, AttributeValue>) -> Result<Self, Self::Error> {
+        let temp = map.get("another").ok_or_else(|| DynamoDBHelper::ParseError("Obligatory not present".to_string()))?.as_l().map_err(|_| DynamoDBHelper::ParseError("conversion to s failed".to_string()))?
+            .iter().map(|v| v.as_n().map_err(|_| DynamoDBHelper::ParseError("conversion to s failed".to_string())).and_then(|v| str::parse(v).map_err(|_| DynamoDBHelper::ParseError("yo".to_string())))).collect::<Result<Vec<_>, _>>()?
+            ;
+
+        Ok(TestStruct {
+            partition_key: map.get("partition_key").ok_or_else(|| DynamoDBHelper::ParseError("Obligatory not present".to_string()))?.as_s().map_err(|_| DynamoDBHelper::ParseError("conversion to s failed".to_string())).map(|v| str::parse(v))??,
+            value: 0,
+            another: temp,
+            // another: value.get("another").map(|v| v.as_s().map_err(|_| DynamoDBHelper::ParseError("conversion to s failed".to_string())).map(|v| v.to_string())).transpose()?,
+        })
+    }
+}
 
 // impl From<TestStruct> for HashMap<String, AttributeValue> {
 //     fn from(_: TestStruct) -> Self {
@@ -86,6 +95,8 @@ async fn main() {
         #[partition]
         partition_key: String,
         a_number: u32,
+        a_temp: Vec<i32>,
+        a_tempie: Vec<String>,
     }
 }
 
