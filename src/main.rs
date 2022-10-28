@@ -14,7 +14,7 @@ use tokio_stream::StreamExt;
 struct TestStruct {
     partition_key: String,
     value: i32,
-    another: Vec<i32>,
+    another: HashMap<String, String>,
 }
 
 struct TestDB {
@@ -57,9 +57,20 @@ impl TryFrom<std::collections::HashMap<String, aws_sdk_dynamodb::model::Attribut
 
 
     fn try_from(map: HashMap<String, AttributeValue>) -> Result<Self, Self::Error> {
-        let temp = map.get("another").ok_or_else(|| DynamoDBHelper::ParseError("Obligatory not present".to_string()))?.as_l().map_err(|_| DynamoDBHelper::ParseError("conversion to s failed".to_string()))?
-            .iter().map(|v| v.as_n().map_err(|_| DynamoDBHelper::ParseError("conversion to s failed".to_string())).and_then(|v| str::parse(v).map_err(|_| DynamoDBHelper::ParseError("yo".to_string())))).collect::<Result<Vec<_>, _>>()?
-            ;
+        // let temp = map.get("another").ok_or_else(|| DynamoDBHelper::ParseError("Obligatory not present".to_string()))?.as_l().map_err(|_| DynamoDBHelper::ParseError("conversion to s failed".to_string()))?
+        //     .iter().map(|v| v.as_n().map_err(|_| DynamoDBHelper::ParseError("conversion to s failed".to_string())).and_then(|v| str::parse(v).map_err(|_| DynamoDBHelper::ParseError("yo".to_string())))).collect::<Result<Vec<_>, _>>()?
+        //     ;
+        let temp = map.get("another").ok_or_else(|| DynamoDBHelper::ParseError("Obligatory not present".to_string()))?.as_m()
+            .map_err(|_| DynamoDBHelper::ParseError("conversion from DynamoDB Map failed".to_string()))?.iter()
+            .map(|v| {
+                if v.1.as_s().is_err() {
+                    Err(DynamoDBHelper::ParseError("could not".to_string()))
+                } else {
+                    Ok((v.0.clone(), v.1.as_s().unwrap().clone()))
+                }
+            })
+            .collect::<Result<HashMap<String, String>, _>>()?
+        ;
 
         Ok(TestStruct {
             partition_key: map.get("partition_key").ok_or_else(|| DynamoDBHelper::ParseError("Obligatory not present".to_string()))?.as_s().map_err(|_| DynamoDBHelper::ParseError("conversion to s failed".to_string())).map(|v| str::parse(v))??,
@@ -95,8 +106,7 @@ async fn main() {
         #[partition]
         partition_key: String,
         a_number: u32,
-        a_temp: Vec<i32>,
-        a_tempie: Vec<String>,
+        a_temp: HashMap<String, String>,
     }
 }
 

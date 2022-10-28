@@ -101,7 +101,7 @@ fn build_from_hashmap_for_map_items(simp1: DynamoType, simp2: DynamoType, name: 
     match (simp1, simp2) {
         (DynamoType::String, DynamoType::String) => {
             quote! {
-                #name: map.get(#name_as_string).map(|v| v.as_m().expect("Attribute value conversion to work")).expect("Value for struct property to be present").iter().map(|v| (v.0.clone(), v.1.as_s().expect("Attribute value conversion to work").clone())).collect(),
+                #name: map.get(#name_as_string).ok_or_else(|| #err { message: format!("Did not find required attribute {}", #name_as_string) })?.as_m().map_err(|_| #err { message: format!("Could not convert {} from Dynamo Map", #name_as_string) })?.iter().map(|v| { if v.1.as_s().is_err() { Err(#err { message: format!("Could not convert from Dynamo String for {}", #name_as_string) }) } else { Ok((v.0.clone(), v.1.as_s().unwrap().clone())) } }).collect::<Result<HashMap<String, String>, _>>()?,
             }
         },
         _ => todo!("Only maps with strings are currently supported")
