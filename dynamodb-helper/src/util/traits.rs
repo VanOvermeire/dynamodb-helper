@@ -91,12 +91,12 @@ fn build_from_hashmap_for_list_items(simp: DynamoType, name: &Ident, name_as_str
     match simp {
         DynamoType::String => {
             quote! {
-                map.get(#name_as_string).ok_or_else(|| #err { message: format!("Did not find required attribute {}", #name_as_string) })?.as_l().map_err(|_| #err { message: format!("Could not convert {} from Dynamo List", #name_as_string) })?.iter().map(|v| v.as_s().map_err(|_| #err { message: format!("Could not convert list element from DynamoDB string for {}", #name_as_string) }).map(|v| v.clone())).collect::<Result<Vec<_>, _>>()?
+                map.get(#name_as_string).ok_or_else(|| #err { message: format!("Did not find required attribute {}", #name_as_string) })?.as_l().map_err(|_| #err { message: format!("Could not convert {} from Dynamo List", #name_as_string) })?.iter().map(|v| v.as_s().map_err(|_| #err { message: format!("Could not convert list element from DynamoDB string for '{}'", #name_as_string) }).map(|v| v.clone())).collect::<Result<Vec<_>, _>>()?
             }
         }
         DynamoType::Number => {
             quote! {
-                map.get(#name_as_string).ok_or_else(|| #err { message: format!("Did not find required attribute {}", #name_as_string) })?.as_l().map_err(|_| #err { message: format!("Could not convert {} from Dynamo List", #name_as_string) })?.iter().map(|v| v.as_s().map_err(|_| #err { message: format!("Could not convert list element from DynamoDB string for {}", #name_as_string) }).and_then(|v| str::parse(v).map_err(|_| #err { message: format!("Could not convert string to number fo {}", #name_as_string) }))).collect::<Result<Vec<_>, _>>()?
+                map.get(#name_as_string).ok_or_else(|| #err { message: format!("Did not find required attribute {}", #name_as_string) })?.as_l().map_err(|_| #err { message: format!("Could not convert {} from Dynamo List", #name_as_string) })?.iter().map(|v| v.as_n().map_err(|_| #err { message: format!("Could not convert list element from DynamoDB string for '{}'", #name_as_string) }).and_then(|v| str::parse(v).map_err(|_| #err { message: format!("Could not convert string to number fo {}", #name_as_string) }))).collect::<Result<Vec<_>, _>>()?
             }
         }
         _ => todo!("Only lists with strings or numbers are currently supported")

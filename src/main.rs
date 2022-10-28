@@ -11,25 +11,25 @@ use dynamodb_helper::DynamoDb;
 use tokio_stream::StreamExt;
 
 // TODO remove test struct and test db
-struct TestStruct {
-    partition_key: String,
-    value: i32,
-    another: Option<Vec<String>>,
-}
-
-struct TestDB {
-    client: Client,
-    table: String,
-}
-
-impl TestDB {
-    fn new(client: Client, table: String) -> Self {
-        TestDB {
-            client,
-            table,
-        }
-    }
-}
+// struct TestStruct {
+//     partition_key: String,
+//     value: i32,
+//     another: Option<Vec<String>>,
+// }
+//
+// struct TestDB {
+//     client: Client,
+//     table: String,
+// }
+//
+// impl TestDB {
+//     fn new(client: Client, table: String) -> Self {
+//         TestDB {
+//             client,
+//             table,
+//         }
+//     }
+// }
 
 // #[derive(Debug)]
 // enum DynamoDBHelper {
@@ -66,18 +66,6 @@ impl TestDB {
 
 // impl From<TestStruct> for HashMap<String, AttributeValue> {
 //     fn from(_: TestStruct) -> Self {
-//         todo!()
-//     }
-// }
-//
-// impl From<HashMap<String, AttributeValue>> for TestStruct {
-//     fn from(_: HashMap<String, AttributeValue>) -> Self {
-//         todo!()
-//     }
-// }
-//
-// impl From<&HashMap<String, AttributeValue>> for TestStruct {
-//     fn from(_: &HashMap<String, AttributeValue>) -> Self {
 //         todo!()
 //     }
 // }

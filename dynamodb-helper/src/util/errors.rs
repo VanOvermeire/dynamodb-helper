@@ -1,6 +1,6 @@
 use quote::__private::Ident;
 use quote::quote;
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::{Debug, Display};
 use std::error::Error;
 use aws_sdk_dynamodb::error::GetItemError;
 use aws_sdk_dynamodb::types::SdkError;
@@ -33,25 +33,25 @@ pub fn generate_helper_error(struct_name: &Ident) -> proc_macro2::TokenStream {
         #(#impl_errors)*
 
         impl std::fmt::Display for #get_error {
-            fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 write!(f, "Get error") // TODO
             }
         }
 
-        impl Display for #get_by_partition_error {
-            fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        impl std::fmt::Display for #get_by_partition_error {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 write!(f, "Get by partition error") // TODO
             }
         }
 
-        impl Display for #batch_get_error {
-            fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        impl std::fmt::Display for #batch_get_error {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 write!(f, "Batch get error") // TODO
             }
         }
 
-        impl Display for #scan_error {
-            fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        impl std::fmt::Display for #scan_error {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 write!(f, "Scan error") // TODO
             }
         }
@@ -61,16 +61,16 @@ pub fn generate_helper_error(struct_name: &Ident) -> proc_macro2::TokenStream {
             message: String,
         }
 
-        impl Display for #parse_error {
-            fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        impl std::fmt::Display for #parse_error {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 write!(f, "Parse error") // TODO
             }
         }
 
         impl std::error::Error for #parse_error {}
 
-        impl From<Infallible> for #parse_error {
-            fn from(_: Infallible) -> Self {
+        impl From<std::convert::Infallible> for #parse_error {
+            fn from(_: std::convert::Infallible) -> Self {
                 #parse_error {
                     message: "Could parse attribute into string".to_string()
                 }
