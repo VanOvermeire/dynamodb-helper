@@ -101,6 +101,7 @@ mod tests {
         optional_string: Option<String>,
         optional_number: Option<i32>,
         optional_number_list: Option<Vec<f32>>,
+        optional_number_map: Option<HashMap<String, String>>,
     }
 
     #[tokio::test]
@@ -115,7 +116,8 @@ mod tests {
             a_map: Default::default(),
             optional_string: None,
             optional_number: None,
-            optional_number_list: None
+            optional_number_list: None,
+            optional_number_map: None
         };
         let _help = ExampleTestStructDb::build(aws_sdk_dynamodb::Region::new("eu-west-1"), "exampleTable").await;
     }
