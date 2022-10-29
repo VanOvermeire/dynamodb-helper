@@ -1,12 +1,4 @@
-use std::collections::HashMap;
-use std::convert::Infallible;
-use std::error::Error;
-use std::fmt::{Display, Formatter, write};
-use std::num::ParseIntError;
-use aws_sdk_dynamodb::Client;
-use aws_sdk_dynamodb::error::{GetItemError, GetItemErrorKind};
 use aws_sdk_dynamodb::model::{AttributeValue};
-use aws_sdk_dynamodb::types::SdkError;
 use dynamodb_helper::DynamoDb;
 use tokio_stream::StreamExt;
 

@@ -1,10 +1,5 @@
 use quote::__private::Ident;
 use quote::quote;
-use std::fmt::{Debug, Display, Formatter};
-use std::error::Error;
-use aws_sdk_dynamodb::error::GetItemError;
-use aws_sdk_dynamodb::types::SdkError;
-use proc_macro2::TokenStream;
 
 pub fn generate_error_names(helper_name: &Ident) -> (proc_macro2::Ident, proc_macro2::Ident, proc_macro2::Ident, proc_macro2::Ident, proc_macro2::Ident) {
     let get_error = Ident::new(&format!("{}GetError", helper_name), helper_name.span());
