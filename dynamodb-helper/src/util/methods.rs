@@ -249,7 +249,7 @@ pub fn scan_method(struct_name: &Ident, error: &Ident) -> proc_macro2::TokenStre
                 .await;
 
             let final_items = items?;
-            let mapped_items = final_items.iter().map(|i| i.try_into()).collect::<Result<Vec<_>, _>>()?;
+            let mapped_items = final_items.iter().map(|v| v.try_into()).collect::<Result<Vec<_>, _>>()?;
 
             Ok(mapped_items)
         }

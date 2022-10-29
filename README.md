@@ -28,14 +28,13 @@ Pull requests with improvements or additional features are appreciated. They sho
 
 - handle pagination (for query and batch)
 - support more types of lists and maps
-- better documentation
-- TODO's in code
+- better documentation in the library itself
 
 ### Possible improvements
 
 - more failure tests
 - if an it test fails, the table is not destroyed
 - allow to change names as they are saved in Dynamo
-- allow decision on pub visibility of methods (default pub)?
 - current setup will set up a DynamoDB client for every helper struct, which is not optimal
+- allow decision on pub visibility of methods (default pub)?
 - (low priority) support stringset, numberset, binaryset and binary
