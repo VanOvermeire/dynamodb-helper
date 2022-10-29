@@ -129,7 +129,6 @@ pub fn get_methods(struct_name: &Ident, get_error: &Ident, get_by_partition_erro
     }
 }
 
-// TODO try to get rid of the responses clone
 pub fn batch_get(struct_name: &Ident, error: &Ident, partition_key_ident_and_type: (&Ident, &Type), range_key_ident_and_type: Option<(&Ident, &Type)>) -> proc_macro2::TokenStream {
     let partition_key_name = partition_key_ident_and_type.0.to_string();
     let partition_key_type = partition_key_ident_and_type.1;
@@ -140,7 +139,6 @@ pub fn batch_get(struct_name: &Ident, error: &Ident, partition_key_ident_and_typ
         let range_key_type = range.1;
         let range_key_attribute_value = get_attribute_type_for_key(range_key_type, Ident::new("range", struct_name.span()));
 
-        // TODO
         quote! {
             pub async fn batch_get(&self, keys: Vec<(#partition_key_type, #range_key_type)>) -> Result<Vec<#struct_name>, #error> {
                 let mapped_keys: Vec<std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>> = keys.into_iter().map(|(partition, range)| {
@@ -163,14 +161,11 @@ pub fn batch_get(struct_name: &Ident, error: &Ident, partition_key_ident_and_typ
                     .send()
                     .await?;
 
-                let mapped_result: Result<Vec<_>, _> = result.responses.clone().map(|mut v| {
-                    let items_found = v.remove(self.table.as_str()).unwrap_or_else(|| vec![]);
-
-                    items_found
-                    .iter()
-                    .map(|r| r.try_into())
-                    .collect()
-                }).unwrap_or_else(|| Ok(vec![]));
+                let mapped_result: Result<Vec<_>, _> = result.responses.as_ref().and_then(|v| v.get(self.table.as_str()))
+                    .map(|v| v.iter()
+                        .map(|v| v.try_into())
+                        .collect())
+                    .unwrap_or_else(|| Ok(vec![]));
 
                 let final_result = mapped_result?;
 
@@ -199,14 +194,11 @@ pub fn batch_get(struct_name: &Ident, error: &Ident, partition_key_ident_and_typ
                     .send()
                     .await?;
 
-                let mapped_result: Result<Vec<_>, _> = result.responses.clone().map(|mut v| {
-                    let items_found = v.remove(self.table.as_str()).unwrap_or_else(|| vec![]);
-
-                    items_found
-                    .iter()
-                    .map(|r| r.try_into())
-                    .collect()
-                }).unwrap_or_else(|| Ok(vec![]));
+                let mapped_result: Result<Vec<_>, _> = result.responses.as_ref().and_then(|v| v.get(self.table.as_str()))
+                    .map(|v| v.iter()
+                        .map(|v| v.try_into())
+                        .collect())
+                    .unwrap_or_else(|| Ok(vec![]));
 
                 let final_result = mapped_result?;
 

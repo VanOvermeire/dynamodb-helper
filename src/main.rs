@@ -1,66 +1,28 @@
+use aws_sdk_dynamodb::Client;
 use aws_sdk_dynamodb::model::{AttributeValue};
 use dynamodb_helper::DynamoDb;
 use tokio_stream::StreamExt;
 
 // TODO remove test struct and test db
-// struct TestStruct {
-//     partition_key: String,
-//     value: i32,
-//     another: Option<Vec<String>>,
-// }
-//
-// struct TestDB {
-//     client: Client,
-//     table: String,
-// }
-//
-// impl TestDB {
-//     fn new(client: Client, table: String) -> Self {
-//         TestDB {
-//             client,
-//             table,
-//         }
-//     }
-// }
+struct TestStruct {
+    partition_key: String,
+    value: i32,
+    another: Option<Vec<String>>,
+}
 
-// #[derive(Debug)]
-// enum DynamoDBHelper {
-//     ParseError(String)
-// }
-//
-// impl Display for DynamoDBHelper {
-//     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-//         write!(f, "Something")
-//     }
-// }
-//
-// impl Error for DynamoDBHelper {}
-//
-// impl From<Infallible> for DynamoDBHelper {
-//     fn from(_: Infallible) -> Self {
-//         DynamoDBHelper::ParseError("YO".to_string())
-//     }
-// }
-//
-//
-// impl TryFrom<std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>> for TestStruct {
-//     type Error = DynamoDBHelper;
-//
-//     fn try_from(map: HashMap<String, AttributeValue>) -> Result<Self, Self::Error> {
-//         Ok(TestStruct {
-//             partition_key: map.get("partition_key").ok_or_else(|| DynamoDBHelper::ParseError("Obligatory not present".to_string()))?.as_s().map_err(|_| DynamoDBHelper::ParseError("conversion to s failed".to_string())).map(|v| str::parse(v))??,
-//             value: 0,
-//             another: if map.get("").is_some() { Some(vec!["yes".to_string()]) } else { None },
-//             // another: value.get("another").map(|v| v.as_s().map_err(|_| DynamoDBHelper::ParseError("conversion to s failed".to_string())).map(|v| v.to_string())).transpose()?,
-//         })
-//     }
-// }
+struct TestDB {
+    client: Client,
+    table: String,
+}
 
-// impl From<TestStruct> for HashMap<String, AttributeValue> {
-//     fn from(_: TestStruct) -> Self {
-//         todo!()
-//     }
-// }
+impl TestDB {
+    fn new(client: Client, table: String) -> Self {
+        TestDB {
+            client,
+            table,
+        }
+    }
+}
 
 #[tokio::main]
 async fn main() {
