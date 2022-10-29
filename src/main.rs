@@ -27,6 +27,7 @@ impl TestDB {
 #[tokio::main]
 async fn main() {
     #[derive(DynamoDb)]
+    #[exclusion("batch_get")]
     pub struct ExampleStruct {
         #[partition]
         partition_key: String,
@@ -42,7 +43,7 @@ mod tests {
     use super::*;
 
     #[derive(DynamoDb)]
-    #[exclusion("scan", "delete_table", "create_table")]
+    #[exclusion("delete_table", "create_table")]
     pub struct ExampleTestStruct {
         #[partition]
         partition_key: String,

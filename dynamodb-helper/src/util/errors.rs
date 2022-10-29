@@ -1,5 +1,6 @@
 use quote::__private::Ident;
 use quote::quote;
+use crate::{BATCH_GET_METHOD_NAME, GET_BY_PARTITION_METHOD_NAME, GET_METHOD_NAME, SCAN_METHOD_NAME};
 
 pub fn generate_error_names(helper_name: &Ident) -> (proc_macro2::Ident, proc_macro2::Ident, proc_macro2::Ident, proc_macro2::Ident, proc_macro2::Ident) {
     let get_error = Ident::new(&format!("{}GetError", helper_name), helper_name.span());
@@ -11,18 +12,19 @@ pub fn generate_error_names(helper_name: &Ident) -> (proc_macro2::Ident, proc_ma
     (get_error, get_by_partition_error, batch_get_error, scan_error, parse_error)
 }
 
-pub fn generate_helper_error(struct_name: &Ident) -> proc_macro2::TokenStream {
+pub fn generate_helper_error(struct_name: &Ident, exclusion_list: &Vec<String>) -> proc_macro2::TokenStream {
     let (get_error, get_by_partition_error, batch_get_error, scan_error, parse_error) = generate_error_names(struct_name);
 
     let error_copies = [
-        (&get_error, Ident::new("GetItemError", struct_name.span())),
-        (&get_by_partition_error, Ident::new("QueryError", struct_name.span())),
-        (&batch_get_error, Ident::new("BatchGetItemError", struct_name.span())),
-        (&scan_error, Ident::new("ScanError", struct_name.span())),
+        (&get_error, Ident::new("GetItemError", struct_name.span()), None),
+        (&get_by_partition_error, Ident::new("QueryError", struct_name.span()), None),
+        (&batch_get_error, Ident::new("BatchGetItemError", struct_name.span()), Some(BATCH_GET_METHOD_NAME.to_string())),
+        (&scan_error, Ident::new("ScanError", struct_name.span()), Some(SCAN_METHOD_NAME.to_string())),
     ];
     let impl_errors = error_copies
         .iter()
-        .map(|error_names| generate_impl_error(error_names.0, &error_names.1, &parse_error));
+        .filter(|error_name| error_name.2.is_none() || !exclusion_list.contains(error_name.2.as_ref().unwrap()))
+        .map(|error_name| generate_impl_error(error_name.0, &error_name.1, &parse_error));
 
     let parse_error_stream = generate_parse_error(&parse_error);
 

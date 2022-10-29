@@ -147,4 +147,4 @@ pub struct ExampleTestStruct {
 }
 ```
 
-'Exclusions' accepts the following parameters: "put", "batch_put", "delete", "scan", "create_table" and "delete_table".
+'Exclusions' accepts the following parameters: "batch_get", "put", "batch_put", "delete", "scan", "create_table" and "delete_table".
