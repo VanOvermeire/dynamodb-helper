@@ -4,7 +4,9 @@
 
 This is the outer part of the DynamoDB helper. It primarily contains testing of the procedural macro, which you can find in the `dynamodb-helper` subdirectory.
 
-More information about usage of the macro [can be found in the readme of that directory](./dynamodb-helper/README.md)
+More information about usage of the macro [can be found in the readme of that directory](./dynamodb-helper/README.md). 
+
+The `main.rs` of this outer package contains an example running against the real AWS environment. A unit test and integration tests contain more examples.
 
 ## Status
 
@@ -29,12 +31,14 @@ Pull requests with improvements or additional features are appreciated. They sho
 - handle pagination (for query and batch)
 - support more types of lists and maps
 - better documentation in the library itself
+- more failure tests
+- allow to change names as they are saved in Dynamo
 
 ### Possible improvements
 
-- more failure tests
-- if an it test fails, the table is not destroyed
-- allow to change names as they are saved in Dynamo
+(But not very high priority...)
+
+- if an it test panics, the table is not destroyed...
 - current setup will set up a DynamoDB client for every helper struct, which is not optimal
 - allow decision on pub visibility of methods (default pub)?
-- (low priority) support stringset, numberset, binaryset and binary
+- support stringset, numberset, binaryset and binary

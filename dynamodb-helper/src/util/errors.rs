@@ -1,6 +1,6 @@
 use quote::__private::Ident;
 use quote::quote;
-use crate::{BATCH_GET_METHOD_NAME, GET_BY_PARTITION_METHOD_NAME, GET_METHOD_NAME, SCAN_METHOD_NAME};
+use crate::{BATCH_GET_METHOD_NAME, SCAN_METHOD_NAME};
 
 pub fn generate_error_names(helper_name: &Ident) -> (proc_macro2::Ident, proc_macro2::Ident, proc_macro2::Ident, proc_macro2::Ident, proc_macro2::Ident) {
     let get_error = Ident::new(&format!("{}GetError", helper_name), helper_name.span());

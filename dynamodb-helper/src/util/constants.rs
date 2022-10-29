@@ -1,5 +1,5 @@
-pub const GET_METHOD_NAME: &'static str = "get";
-pub const GET_BY_PARTITION_METHOD_NAME: &'static str = "get_by_partition";
+// pub const GET_METHOD_NAME: &'static str = "get";
+// pub const GET_BY_PARTITION_METHOD_NAME: &'static str = "get_by_partition";
 
 pub const BATCH_GET_METHOD_NAME: &'static str = "batch_get";
 pub const CREATE_TABLE_METHOD_NAME: &'static str = "create_table";

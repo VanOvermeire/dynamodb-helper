@@ -1,40 +1,45 @@
-use aws_sdk_dynamodb::Client;
-use aws_sdk_dynamodb::model::{AttributeValue};
+use std::thread::sleep;
+use std::time::Duration;
+use aws_sdk_dynamodb::{Region};
 use dynamodb_helper::DynamoDb;
 use tokio_stream::StreamExt;
 
-// TODO remove test struct and test db
-struct TestStruct {
+#[derive(DynamoDb, Debug)]
+#[exclusion("batch_get")]
+pub struct ExampleStruct {
+    #[partition]
     partition_key: String,
-    value: i32,
-    another: Option<Vec<String>>,
-}
-
-struct TestDB {
-    client: Client,
-    table: String,
-}
-
-impl TestDB {
-    fn new(client: Client, table: String) -> Self {
-        TestDB {
-            client,
-            table,
-        }
-    }
+    a_number: u32,
+    an_optional_string: Option<String>,
 }
 
 #[tokio::main]
 async fn main() {
-    #[derive(DynamoDb)]
-    #[exclusion("batch_get")]
-    pub struct ExampleStruct {
-        #[partition]
-        partition_key: String,
-        a_number: u32,
-        a_temp: Option<Vec<String>>,
-        a_temp2: Vec<i32>,
-    }
+    // unlike the tests, this example uses real DynamoDB - so you'll need credentials if you want this to work //
+    println!("Setting up our client");
+    let client = ExampleStructDb::build(Region::new("eu-west-1"), "exampleTable").await;
+
+    println!("Creating table");
+    client.create_table().await.expect("Create table to work");
+    println!("Waiting a bit until table is available");
+    sleep(Duration::from_secs(14)); // better to check readiness, but ok for demonstration purposes
+
+    let example = ExampleStruct {
+        partition_key: "abc123".to_string(),
+        a_number: 5,
+        an_optional_string: Some("optional value".to_string()),
+    };
+
+    println!("Putting an example in the table");
+    client.put(example).await.expect("To be able to put our struct in the table");
+    sleep(Duration::from_secs(1)); // if we're too fast, the item might not be there yet
+
+    println!("Retrieving the example by its partition key");
+    let result = client.get("abc123".to_string()).await.expect("To be able to get our struct back");
+    println!("Got back {:?}", result);
+
+    println!("Cleaning up");
+    client.delete_table().await.expect("Delete table to work");
 }
 
 #[cfg(test)]
@@ -74,6 +79,6 @@ mod tests {
             optional_number_list: None,
             optional_number_map: None
         };
-        let _help = ExampleTestStructDb::build(aws_sdk_dynamodb::Region::new("eu-west-1"), "exampleTable").await;
+        let _help = ExampleTestStructDb::build(Region::new("eu-west-1"), "exampleTable").await;
     }
 }
