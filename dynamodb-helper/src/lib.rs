@@ -39,7 +39,7 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
     let build = build_method(&helper_ident);
 
     let gets = get_methods(&name, &get_error, &get_by_partition_error, partition_key_ident_and_type, range_key_ident_and_type);
-    let batch_get = batch_get(&name, partition_key_ident_and_type, range_key_ident_and_type);
+    let batch_get = batch_get(&name, &batch_get_error, partition_key_ident_and_type, range_key_ident_and_type);
 
     let create_table = tokenstream_or_empty_if_exclusion(
         create_table_method(partition_key_ident_and_type, range_key_ident_and_type), "create_table", &exclusion_list
@@ -57,7 +57,7 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
         delete_method(&name, partition_key_ident_and_type, range_key_ident_and_type), "delete", &exclusion_list,
     );
     let scan = tokenstream_or_empty_if_exclusion(
-        scan_method(&name), "scan", &exclusion_list,
+        scan_method(&name, &scan_error), "scan", &exclusion_list,
     );
 
     let public_version = quote! {

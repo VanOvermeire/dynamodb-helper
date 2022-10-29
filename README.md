@@ -26,17 +26,15 @@ Pull requests with improvements or additional features are welcome. They should 
 
 ### TODO
 
-- better tracing of errors
+- better tracing of compile errors
 - handle pagination (for query and batch)
-- own error handling
-  - less use of expect, more Result
-  - and also tryfrom instead of from
 - support more types of lists and maps
-- Display of errors
+- display of errors
 - TODO's in code
 
 ### Possible improvements
 
+- when excluding, also exclude construction of errors (e.g. scan)
 - allow decision on pub visibility of methods (default pub)?
 - current setup will set up a DynamoDB client for every helper struct, which is not optimal
 - support stringset, numberset, binaryset (low priority) and binary
