@@ -54,7 +54,7 @@ async fn should_be_able_to_update() {
 
     init_table(&client, put_table, "an_id", None).await;
 
-    put_order_struct(put_table, &client, &example);
+    put_order_struct(put_table, &client, &example).await;
 
     let db = OrderStructDb::new(client_for_struct, put_table);
 

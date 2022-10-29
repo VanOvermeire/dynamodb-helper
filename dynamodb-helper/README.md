@@ -116,6 +116,23 @@ Note that DynamoDB only supports strings, numbers and booleans *for key types*.
 
 Saving as *string sets* or *number sets* is not possible, other types of maps and vecs are still TODO.
 
+### Errors
+
+Most methods return a result, with the error being the appropriate AWS error. For example, create_table returns `Result<aws_sdk_dynamodb::output::CreateTableOutput, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::CreateTableError>>`.
+
+Retrieval methods (gets, batch gets and scans) return a *custom error* because parsing the return value might fail. The returned error is an enum of the parse error and the aws error. The name of the error is based on the name of the struct.
+
+For example, for the struct `ExampleStruct` our macro generates: 
+
+```
+pub enum ExampleStructDbScanError {
+    ParseError(String),
+    AwsError(aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::ScanError>),
+}
+```
+
+And the scan method returns `Result<Vec<ExampleStruct>, ExampleStructDbScanError>`.
+
 ### Exclusions
 
 You can optionally decide against generating methods, either because you want to generate less code, or because you think having something like delete / delete table available is too dangerous.

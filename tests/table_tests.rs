@@ -1,9 +1,9 @@
 pub mod util;
 
+use aws_sdk_dynamodb::error::CreateTableError;
 use aws_sdk_dynamodb::model::KeyType;
+use aws_sdk_dynamodb::types::SdkError;
 use util::*;
-
-// TODO once we've decided on the how, test some failures
 
 #[tokio::test]
 async fn should_be_able_to_create_a_table() {
@@ -29,6 +29,23 @@ async fn should_be_able_to_create_a_table() {
     assert_eq!(table.key_schema.as_ref().unwrap()[0].key_type.as_ref().unwrap(), &KeyType::Hash);
     assert_eq!(table.key_schema.as_ref().unwrap()[1].attribute_name.as_ref().unwrap(), "a_range");
     assert_eq!(table.key_schema.as_ref().unwrap()[1].key_type.as_ref().unwrap(), &KeyType::Range);
+
+    destroy_table(&client, create_table).await;
+}
+
+#[tokio::test]
+async fn should_return_error_result_when_creating_table_twice() {
+    let create_table = "createTableTwiceTable";
+    let client = create_client().await;
+    let client_for_struct = create_client().await;
+
+    let db = OrderStructWithRangeDb::new(client_for_struct, create_table);
+
+    db.create_table().await.expect("Create table to work");
+
+    let result: Result<_, SdkError<CreateTableError>> = db.create_table().await;
+
+    assert!(result.is_err());
 
     destroy_table(&client, create_table).await;
 }

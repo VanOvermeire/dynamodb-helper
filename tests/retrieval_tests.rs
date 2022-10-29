@@ -1,4 +1,8 @@
+extern crate core;
+
+use std::collections::HashMap;
 use std::iter::Iterator;
+use aws_sdk_dynamodb::model::AttributeValue;
 
 pub mod util;
 use util::*;
@@ -31,7 +35,44 @@ async fn should_be_able_to_get_from_dynamo() {
     assert_eq!(result.total_amount, example.total_amount);
     assert_eq!(result.a_boolean, example.a_boolean);
     assert_eq!(result.numbers, example.numbers);
-    assert_eq!(result.something_optional.unwrap(), example.something_optional.unwrap())
+    assert_eq!(result.something_optional.unwrap(), example.something_optional.unwrap());
+}
+
+#[tokio::test]
+async fn should_return_error_result_from_dynamo_when_parsing_fails() {
+    let get_table = "getParseFailureTable";
+    let client = create_client().await;
+    let client_for_struct = create_client().await;
+    let example = create_order_struct();
+
+    init_table(&client, get_table, "an_id", None).await;
+
+    let db = OrderStructDb::new(client_for_struct, get_table);
+
+    let basic_map = HashMap::from([
+        ("an_id".to_string(), AttributeValue::S(example.an_id.to_string())),
+        ("name".to_string(), AttributeValue::S(example.name.to_string())),
+        ("total_amount".to_string(), AttributeValue::S("not an amount".to_string())),
+        ("a_boolean".to_string(), AttributeValue::Bool(example.a_boolean)),
+        ("numbers".to_string(), AttributeValue::L(vec![])),
+    ]);
+
+    client.put_item()
+        .table_name(get_table)
+        .set_item(Some(basic_map))
+        .send()
+        .await
+        .expect("To be able to put");
+
+    let result: Result<_, _> = db.get(example.an_id.to_string())
+        .await;
+
+    destroy_table(&client, get_table).await;
+
+    match result {
+        Err(OrderStructDbGetError::ParseError(v)) => v.contains("Could not convert"),
+        _ => panic!("Did not find expected error result")
+    };
 }
 
 #[tokio::test]

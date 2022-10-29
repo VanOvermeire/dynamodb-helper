@@ -29,12 +29,14 @@ Pull requests with improvements or additional features are welcome. They should 
 - better tracing of compile errors
 - handle pagination (for query and batch)
 - support more types of lists and maps
-- display of errors
+- better documentation
 - TODO's in code
 
 ### Possible improvements
 
-- when excluding, also exclude construction of errors (e.g. scan)
+- more failure tests
+- if an it test fails, the table is not destroyed
+- when excluding, also exclude construction of errors (e.g. scan error)
 - allow decision on pub visibility of methods (default pub)?
 - current setup will set up a DynamoDB client for every helper struct, which is not optimal
-- support stringset, numberset, binaryset (low priority) and binary
+- (low priority) support stringset, numberset, binaryset and binary
