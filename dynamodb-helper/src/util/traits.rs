@@ -174,12 +174,12 @@ fn map_insert_for(val: IterableDynamoType, name_as_string: String) -> proc_macro
             match simp {
                 DynamoType::String => {
                     quote! {
-                        map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::L(to_insert.into_iter().map(|v| AttributeValue::S(v)).collect()));
+                        map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::L(to_insert.into_iter().map(|v| aws_sdk_dynamodb::model::AttributeValue::S(v)).collect()));
                     }
                 }
                 DynamoType::Number => {
                     quote! {
-                        map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::L(to_insert.into_iter().map(|v| AttributeValue::N(v.to_string())).collect()));
+                        map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::L(to_insert.into_iter().map(|v| aws_sdk_dynamodb::model::AttributeValue::N(v.to_string())).collect()));
                     }
                 }
                 _ => todo!("Only lists with strings or numbers are currently supported")
@@ -189,7 +189,7 @@ fn map_insert_for(val: IterableDynamoType, name_as_string: String) -> proc_macro
             match (simp1, simp2) {
                 (DynamoType::String, DynamoType::String) => {
                     quote! {
-                        map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::M(to_insert.into_iter().map(|v| (v.0, AttributeValue::S(v.1))).collect()));
+                        map.insert(#name_as_string.to_string(), aws_sdk_dynamodb::model::AttributeValue::M(to_insert.into_iter().map(|v| (v.0, aws_sdk_dynamodb::model::AttributeValue::S(v.1))).collect()));
                     }
                 },
                 _ => todo!("Only maps with strings are currently supported")
