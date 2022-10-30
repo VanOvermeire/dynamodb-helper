@@ -29,16 +29,30 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
     let (get_error, get_by_partition_error, batch_get_error, scan_error, parse_error) = generate_error_names(&helper_ident);
     let errors = generate_helper_error(&helper_ident, &exclusion_list);
 
-    let partition_key_ident_and_type = get_ident_and_type_of_field_annotated_with(fields, PARTITION_KEY_ATTRIBUTE_NAME).expect("Partition key should be defined (using the field attribute #[partition])");
+    let partition_key_ident_and_type = get_ident_and_type_of_field_annotated_with(fields, PARTITION_KEY_ATTRIBUTE_NAME)
+        .expect("You need to define a partition key for your DynamoDB struct! Place the field attribute `#[partition]` above the property that will serve as your key. Note that DynamoDB only supports strings, numbers and booleans as keys.");
+
     let range_key_ident_and_type = get_ident_and_type_of_field_annotated_with(fields, RANGE_KEY_ATTRIBUTE_NAME);
 
-    let from_struct_for_hashmap = from_struct_for_hashmap(&name, fields);
-    let try_from_hashmap_for_struct = try_from_hashmap_to_struct(&name, &parse_error, fields);
+    let from_struct_for_hashmap = tokenstream_or_empty_if_no_put_methods(
+        from_struct_for_hashmap(&name, fields), &exclusion_list
+    );
 
-    let new = new_method(&helper_ident);
-    let build = build_method(&helper_ident);
+    let try_from_hashmap_for_struct = tokenstream_or_empty_if_no_retrieval_methods(
+        try_from_hashmap_to_struct(&name, &parse_error, fields), &exclusion_list,
+    );
 
-    let gets = get_methods(&name, &get_error, &get_by_partition_error, partition_key_ident_and_type, range_key_ident_and_type);
+    let new = tokenstream_or_empty_if_exclusion(
+        new_method(&helper_ident), NEW_METHOD_NAME, &exclusion_list,
+    );
+
+    let build = tokenstream_or_empty_if_exclusion(
+        build_method(&helper_ident), BUILD_METHOD_NAME, &exclusion_list,
+    );
+
+    let gets = tokenstream_or_empty_if_exclusion(
+        get_methods(&name, &get_error, &get_by_partition_error, partition_key_ident_and_type, range_key_ident_and_type), GET_METHOD_NAME, &exclusion_list
+    );
 
     let batch_get = tokenstream_or_empty_if_exclusion(
         batch_get(&name, &batch_get_error, partition_key_ident_and_type, range_key_ident_and_type), BATCH_GET_METHOD_NAME, &exclusion_list

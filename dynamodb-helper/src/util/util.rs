@@ -8,6 +8,7 @@ use syn::token::Comma;
 use syn::__private::TokenStream2;
 use proc_macro2::TokenTree::Group;
 use proc_macro2::TokenTree::Literal;
+use crate::{BATCH_GET_METHOD_NAME, BATCH_PUT_METHOD_NAME, GET_METHOD_NAME, PUT_METHOD_NAME, SCAN_METHOD_NAME};
 
 pub const ALL_NUMERIC_TYPES_AS_STRINGS: &'static [&'static str] = &["u8", "u16", "u32", "u64", "u128", "i8", "i16", "i32", "i64", "i128", "f32", "f64"];
 
@@ -166,10 +167,24 @@ pub fn get_macro_attribute(attrs: &Vec<Attribute>, attribute_name: &str) -> Vec<
         .collect()
 }
 
+pub fn tokenstream_or_empty_if_no_retrieval_methods(stream: TokenStream2, exclusions: &Vec<String>) -> TokenStream2 {
+    tokenstream_or_empty_if_boolean_function(stream, &|| exclusions.contains(&GET_METHOD_NAME.to_string()) && exclusions.contains(&BATCH_GET_METHOD_NAME.to_string()) && exclusions.contains(&SCAN_METHOD_NAME.to_string()))
+}
+
+pub fn tokenstream_or_empty_if_no_put_methods(stream: TokenStream2, exclusions: &Vec<String>) -> TokenStream2 {
+    tokenstream_or_empty_if_boolean_function(stream, &|| exclusions.contains(&PUT_METHOD_NAME.to_string()) && exclusions.contains(&BATCH_PUT_METHOD_NAME.to_string()))
+}
+
 pub fn tokenstream_or_empty_if_exclusion(stream: TokenStream2, method_name: &str, exclusions: &Vec<String>) -> TokenStream2 {
-    if exclusions.contains(&method_name.to_string()) {
+    tokenstream_or_empty_if_boolean_function(stream, &|| exclusions.contains(&method_name.to_string()))
+}
+
+pub fn tokenstream_or_empty_if_boolean_function(stream: TokenStream2, fun: &dyn Fn() -> bool) -> TokenStream2 {
+    if fun() {
         quote! {}
     } else {
         stream
     }
 }
+
+

@@ -147,4 +147,6 @@ pub struct ExampleTestStruct {
 }
 ```
 
-'Exclusions' accepts the following parameters: "batch_get", "put", "batch_put", "delete", "scan", "create_table" and "delete_table".
+'Exclusions' accepts the following parameters: "new", "build", "get" (which will also exclude get_by_partition_key when that's applicable), "batch_get", "put", "batch_put", "delete", "scan", "create_table" and "delete_table".
+
+Traits and errors will only be generated when they are relevant.

@@ -1,6 +1,7 @@
-// pub const GET_METHOD_NAME: &'static str = "get";
-// pub const GET_BY_PARTITION_METHOD_NAME: &'static str = "get_by_partition";
+pub const NEW_METHOD_NAME: &'static str = "new";
+pub const BUILD_METHOD_NAME: &'static str = "build";
 
+pub const GET_METHOD_NAME: &'static str = "get"; // cover get by partition as well
 pub const BATCH_GET_METHOD_NAME: &'static str = "batch_get";
 pub const CREATE_TABLE_METHOD_NAME: &'static str = "create_table";
 pub const DELETE_TABLE_METHOD_NAME: &'static str = "delete_table";

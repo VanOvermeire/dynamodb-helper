@@ -48,6 +48,14 @@ mod tests {
     use super::*;
 
     #[derive(DynamoDb)]
+    #[exclusion("new", "get", "batch_get", "put", "batch_put", "delete", "scan", "create_table", "delete_table")]
+    pub struct PrettyUselessTestStruct {
+        #[partition]
+        partition_key: String,
+        value: String,
+    }
+
+    #[derive(DynamoDb)]
     #[exclusion("delete_table", "create_table")]
     pub struct ExampleTestStruct {
         #[partition]
@@ -80,5 +88,14 @@ mod tests {
             optional_number_map: None
         };
         let _help = ExampleTestStructDb::build(Region::new("eu-west-1"), "exampleTable").await;
+    }
+
+    #[tokio::test]
+    async fn should_generate_a_pretty_useless_struct_with_only_a_build_method() {
+        let _e = PrettyUselessTestStruct {
+            partition_key: "example".to_string(),
+            value: "".to_string(),
+        };
+        let _help = PrettyUselessTestStructDb::build(Region::new("eu-west-1"), "exampleTable").await;
     }
 }
