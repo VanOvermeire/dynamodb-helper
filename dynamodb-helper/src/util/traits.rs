@@ -40,9 +40,9 @@ fn try_from_hashmap_for_individual_field(f: &Field, err: &Ident) -> TokenStream 
             match v {
                 IterableDynamoType::Simple(simp) => {
                     match simp {
-                        DynamoType::String => quote!(#name: map.get(#name_as_string).map(|v| v.as_s().map_err(|_| #err { message: format!("Could not convert {} from Dynamo String", #name_as_string) }).map(|v| v.to_string())).transpose()?,),
-                        DynamoType::Number => quote!(#name: map.get(#name_as_string).map(|v| v.as_n().map_err(|_| #err { message: format!("Could not convert {} from Dynamo Number", #name_as_string) }).and_then(|v| str::parse(v).map_err(|_| #err { message: format!("Could not parse number for {}", #name_as_string) }))).transpose()?,),
-                        DynamoType::Boolean => quote!(#name: map.get(#name_as_string).map(|v| v.as_bool().map(|v| *v).map_err(|_| #err { message: format!("Could not convert {} from Dynamo String", #name_as_string) })).transpose()?,)
+                        DynamoType::String => quote!(#name: map.get(#name_as_string).map(|v| v.as_s().map_err(|_| #err::new(format!("Could not convert {} from Dynamo String", #name_as_string))).map(|v| v.to_string())).transpose()?,),
+                        DynamoType::Number => quote!(#name: map.get(#name_as_string).map(|v| v.as_n().map_err(|_| #err::new(format!("Could not convert {} from Dynamo Number", #name_as_string))).and_then(|v| str::parse(v).map_err(|_| #err::new(format!("Could not parse number for {}", #name_as_string))))).transpose()?,),
+                        DynamoType::Boolean => quote!(#name: map.get(#name_as_string).map(|v| v.as_bool().map(|v| *v).map_err(|_| #err::new(message: format!("Could not convert {} from Dynamo String", #name_as_string)))).transpose()?,)
                     }
                 }
                 IterableDynamoType::List(simp) => {
@@ -65,9 +65,9 @@ fn try_from_hashmap_for_individual_field(f: &Field, err: &Ident) -> TokenStream 
             match v {
                 IterableDynamoType::Simple(simp) => {
                     match simp {
-                        DynamoType::String => quote!(#name: map.get(#name_as_string).ok_or_else(|| #err { message: format!("Did not find required attribute {}", #name_as_string) })?.as_s().map_err(|_| #err { message: format!("Could not convert {} from Dynamo String", #name_as_string) }).map(|v| str::parse(v))??,),
-                        DynamoType::Number => quote!(#name: map.get(#name_as_string).ok_or_else(|| #err { message: format!("Did not find required attribute {}", #name_as_string) })?.as_n().map_err(|_| #err { message: format!("Could not convert {} from Dynamo Number", #name_as_string) }).and_then(|v| str::parse(v).map_err(|_| #err { message: format!("Could not parse number for {}", #name_as_string) }))?,),
-                        DynamoType::Boolean => quote!(#name: map.get(#name_as_string).ok_or_else(|| #err { message: format!("Did not find required attribute {}", #name_as_string) })?.as_bool().map(|v| *v).map_err(|_| #err { message: format!("Could not convert {} from Dynamo Boolean", #name_as_string) })?,)
+                        DynamoType::String => quote!(#name: map.get(#name_as_string).ok_or_else(|| #err::new(format!("Did not find required attribute {}", #name_as_string)))?.as_s().map_err(|_| #err::new(format!("Could not convert {} from Dynamo String", #name_as_string))).map(|v| str::parse(v))??,),
+                        DynamoType::Number => quote!(#name: map.get(#name_as_string).ok_or_else(|| #err::new(format!("Did not find required attribute {}", #name_as_string)))?.as_n().map_err(|_| #err::new(format!("Could not convert {} from Dynamo Number", #name_as_string))).and_then(|v| str::parse(v).map_err(|_| #err::new(format!("Could not parse number for {}", #name_as_string))))?,),
+                        DynamoType::Boolean => quote!(#name: map.get(#name_as_string).ok_or_else(|| #err::new(format!("Did not find required attribute {}", #name_as_string)))?.as_bool().map(|v| *v).map_err(|_| #err::new(format!("Could not convert {} from Dynamo Boolean", #name_as_string)))?,)
                     }
                 }
                 IterableDynamoType::List(simp) => {
@@ -91,12 +91,12 @@ fn build_from_hashmap_for_list_items(simp: DynamoType, name_as_string: String, e
     match simp {
         DynamoType::String => {
             quote! {
-                map.get(#name_as_string).ok_or_else(|| #err { message: format!("Did not find required attribute {}", #name_as_string) })?.as_l().map_err(|_| #err { message: format!("Could not convert {} from Dynamo List", #name_as_string) })?.iter().map(|v| v.as_s().map_err(|_| #err { message: format!("Could not convert list element from DynamoDB string for '{}'", #name_as_string) }).map(|v| v.clone())).collect::<Result<Vec<_>, _>>()?
+                map.get(#name_as_string).ok_or_else(|| #err::new(format!("Did not find required attribute {}", #name_as_string)))?.as_l().map_err(|_| #err::new(format!("Could not convert {} from Dynamo List", #name_as_string)))?.iter().map(|v| v.as_s().map_err(|_| #err::new(format!("Could not convert list element from DynamoDB string for '{}'", #name_as_string))).map(|v| v.clone())).collect::<Result<Vec<_>, _>>()?
             }
         }
         DynamoType::Number => {
             quote! {
-                map.get(#name_as_string).ok_or_else(|| #err { message: format!("Did not find required attribute {}", #name_as_string) })?.as_l().map_err(|_| #err { message: format!("Could not convert {} from Dynamo List", #name_as_string) })?.iter().map(|v| v.as_n().map_err(|_| #err { message: format!("Could not convert list element from DynamoDB string for '{}'", #name_as_string) }).and_then(|v| str::parse(v).map_err(|_| #err { message: format!("Could not convert string to number fo {}", #name_as_string) }))).collect::<Result<Vec<_>, _>>()?
+                map.get(#name_as_string).ok_or_else(|| #err::new(format!("Did not find required attribute {}", #name_as_string)))?.as_l().map_err(|_| #err::new(format!("Could not convert {} from Dynamo List", #name_as_string)))?.iter().map(|v| v.as_n().map_err(|_| #err::new(format!("Could not convert list element from DynamoDB string for '{}'", #name_as_string))).and_then(|v| str::parse(v).map_err(|_| #err::new(format!("Could not convert string to number fo {}", #name_as_string))))).collect::<Result<Vec<_>, _>>()?
             }
         }
         _ => todo!("Only lists with strings or numbers are currently supported")
@@ -107,7 +107,7 @@ fn build_from_hashmap_for_map_items(simp1: DynamoType, simp2: DynamoType, name_a
     match (simp1, simp2) {
         (DynamoType::String, DynamoType::String) => {
             quote! {
-                map.get(#name_as_string).ok_or_else(|| #err { message: format!("Did not find required attribute {}", #name_as_string) })?.as_m().map_err(|_| #err { message: format!("Could not convert {} from Dynamo Map", #name_as_string) })?.iter().map(|v| { if v.1.as_s().is_err() { Err(#err { message: format!("Could not convert from Dynamo String for {}", #name_as_string) }) } else { Ok((v.0.clone(), v.1.as_s().unwrap().clone())) } }).collect::<Result<HashMap<String, String>, _>>()?
+                map.get(#name_as_string).ok_or_else(|| #err::new(format!("Did not find required attribute {}", #name_as_string)))?.as_m().map_err(|_| #err::new(format!("Could not convert {} from Dynamo Map", #name_as_string)))?.iter().map(|v| { if v.1.as_s().is_err() { Err(#err::new(format!("Could not convert from Dynamo String for {}", #name_as_string))) } else { Ok((v.0.clone(), v.1.as_s().unwrap().clone())) } }).collect::<Result<HashMap<String, String>, _>>()?
             }
         },
         _ => todo!("Only maps with strings are currently supported")

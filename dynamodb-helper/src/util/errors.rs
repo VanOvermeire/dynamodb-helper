@@ -41,6 +41,14 @@ fn generate_parse_error(parse_error: &Ident) -> proc_macro2::TokenStream {
             message: String,
         }
 
+        impl #parse_error {
+            pub fn new(message: String) -> #parse_error {
+                #parse_error {
+                    message,
+                }
+            }
+        }
+
         impl std::fmt::Display for #parse_error {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 write!(f, "Parse error: {}", self.message)
