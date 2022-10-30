@@ -31,7 +31,6 @@ Pull requests with improvements or additional features are appreciated. They sho
 - handle pagination for query and batch
 - support more types of lists and maps
 - better documentation in the library itself
-- more failure tests
 - allow to change names as they are saved in DynamoDB
 
 ### Possible improvements
