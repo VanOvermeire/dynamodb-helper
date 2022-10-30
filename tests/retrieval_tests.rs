@@ -39,7 +39,7 @@ async fn should_be_able_to_get_from_dynamo() {
 }
 
 #[tokio::test]
-async fn should_return_error_result_from_dynamo_when_parsing_fails() {
+async fn should_return_error_result_when_parsing_fails_for_get() {
     let get_table = "getParseFailureTable";
     let client = create_client().await;
     let client_for_struct = create_client().await;
@@ -52,20 +52,13 @@ async fn should_return_error_result_from_dynamo_when_parsing_fails() {
     let basic_map = HashMap::from([
         ("an_id".to_string(), AttributeValue::S(example.an_id.to_string())),
         ("name".to_string(), AttributeValue::S(example.name.to_string())),
-        ("total_amount".to_string(), AttributeValue::S("not an amount".to_string())),
+        ("total_amount".to_string(), AttributeValue::S("not a number".to_string())),
         ("a_boolean".to_string(), AttributeValue::Bool(example.a_boolean)),
         ("numbers".to_string(), AttributeValue::L(vec![])),
     ]);
+    put_hashmap(get_table, &client, basic_map).await;
 
-    client.put_item()
-        .table_name(get_table)
-        .set_item(Some(basic_map))
-        .send()
-        .await
-        .expect("To be able to put");
-
-    let result: Result<_, _> = db.get(example.an_id.to_string())
-        .await;
+    let result = db.get(example.an_id.to_string()).await;
 
     destroy_table(&client, get_table).await;
 
@@ -142,6 +135,37 @@ async fn should_be_able_to_get_from_dynamo_only_using_partition_part() {
     assert_eq!(result.len(), 2);
     assert_eq!(result[0].a_range, example.a_range);
     assert_eq!(result[1].a_range, second_example.a_range);
+}
+
+#[tokio::test]
+async fn should_return_error_result_when_parsing_fails_for_get_by_partition() {
+    let get_table = "getByPartitionKeyParseFailureTable";
+    let client = create_client().await;
+    let client_for_struct = create_client().await;
+    let example = create_order_struct_with_range();
+
+    init_table(&client, get_table, "an_id", Some("a_range")).await;
+
+    let db = OrderStructWithRangeDb::new(client_for_struct, get_table);
+
+    let map = HashMap::from([
+        ("an_id".to_string(), AttributeValue::S(example.an_id.to_string())),
+        ("a_range".to_string(), AttributeValue::N(example.a_range.to_string())),
+        ("name".to_string(), AttributeValue::S(example.name.to_string())),
+        ("total_amount".to_string(), AttributeValue::S("not a number".to_string())),
+        ("names".to_string(), AttributeValue::L(example.names.iter().map(|v| v.clone()).map(|v| AttributeValue::S(v)).collect())),
+        ("map_values".to_string(), AttributeValue::M(example.map_values.iter().map(|v| (v.0.clone(), AttributeValue::S(v.1.clone()))).collect())),
+    ]);
+    put_hashmap(get_table, &client, map).await;
+
+    let result = db.get_by_partition_key(example.an_id.to_string()).await;
+
+    destroy_table(&client, get_table).await;
+
+    match result {
+        Err(OrderStructWithRangeDbGetByPartitionError::ParseError(v)) => v.contains("Could not convert"),
+        _ => panic!("Did not find expected error result")
+    };
 }
 
 #[tokio::test]
@@ -241,4 +265,34 @@ async fn should_be_able_to_scan_dynamo() {
     destroy_table(&client, scan_table).await;
 
     assert_eq!(result.len(), 2);
+}
+
+#[tokio::test]
+async fn should_return_error_result_when_parsing_fails_for_scan() {
+    let scan_table = "myScanParseFailureTable";
+    let client = create_client().await;
+    let client_for_struct = create_client().await;
+    let example = create_order_struct();
+
+    init_table(&client, scan_table, "an_id", None).await;
+
+    let db = OrderStructDb::new(client_for_struct, scan_table);
+
+    let map = HashMap::from([
+        ("an_id".to_string(), AttributeValue::S(example.an_id.to_string())),
+        ("name".to_string(), AttributeValue::S(example.name.to_string())),
+        ("total_amount".to_string(), AttributeValue::S("not a number".to_string())),
+        ("a_boolean".to_string(), AttributeValue::Bool(example.a_boolean)),
+        ("numbers".to_string(), AttributeValue::L(vec![])),
+    ]);
+    put_hashmap(scan_table, &client, map).await;
+
+    let result = db.scan().await;
+
+    destroy_table(&client, scan_table).await;
+
+    match result {
+        Err(OrderStructDbScanError::ParseError(v)) => v.contains("Could not convert"),
+        _ => panic!("Did not find expected error result")
+    };
 }

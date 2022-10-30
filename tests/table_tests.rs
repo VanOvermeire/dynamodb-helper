@@ -102,4 +102,21 @@ async fn should_be_able_to_delete_a_table() {
     assert!(filtered.is_none() || filtered.unwrap().len() == 0);
 }
 
+#[tokio::test]
+async fn should_returning_error_result_when_deleting_twice() {
+    let delete_table = "deleteTableTwiceTable";
+    let client = create_client().await;
+    let client_for_struct = create_client().await;
+
+    init_table(&client, delete_table, "an_id", Some("a_range")).await;
+
+    let db = OrderStructDb::new(client_for_struct, delete_table);
+
+    db.delete_table().await.expect("Delete table to work");
+
+    let result = db.delete_table().await;
+
+    assert!(result.is_err());
+}
+
 

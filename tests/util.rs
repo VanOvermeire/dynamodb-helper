@@ -142,26 +142,25 @@ pub async fn put_order_struct(table: &str, client: &Client, struc: &OrderStruct)
     if struc.something_optional.is_some() {
         basic_map.insert("something_optional".to_string(), AttributeValue::S(struc.something_optional.as_ref().unwrap().to_string()));
     };
-
-    client.put_item()
-        .table_name(table)
-        .set_item(Some(basic_map))
-        .send()
-        .await
-        .expect("To be able to put");
+    put_hashmap(table, client, basic_map).await;
 }
 
 pub async fn put_order_with_range_struct(table: &str, client: &Client, example: &OrderStructWithRange) {
+    let map = HashMap::from([
+        ("an_id".to_string(), AttributeValue::S(example.an_id.to_string())),
+        ("a_range".to_string(), AttributeValue::N(example.a_range.to_string())),
+        ("name".to_string(), AttributeValue::S(example.name.to_string())),
+        ("total_amount".to_string(), AttributeValue::N(example.total_amount.to_string())),
+        ("names".to_string(), AttributeValue::L(example.names.iter().map(|v| v.clone()).map(|v| AttributeValue::S(v)).collect())),
+        ("map_values".to_string(), AttributeValue::M(example.map_values.iter().map(|v| (v.0.clone(), AttributeValue::S(v.1.clone()))).collect())),
+    ]);
+    put_hashmap(table, client, map).await;
+}
+
+pub async fn put_hashmap(table: &str, client: &Client, map: HashMap<String, AttributeValue>) {
     client.put_item()
         .table_name(table)
-        .set_item(Some(HashMap::from([
-            ("an_id".to_string(), AttributeValue::S(example.an_id.to_string())),
-            ("a_range".to_string(), AttributeValue::N(example.a_range.to_string())),
-            ("name".to_string(), AttributeValue::S(example.name.to_string())),
-            ("total_amount".to_string(), AttributeValue::N(example.total_amount.to_string())),
-            ("names".to_string(), AttributeValue::L(example.names.iter().map(|v| v.clone()).map(|v| AttributeValue::S(v)).collect())),
-            ("map_values".to_string(), AttributeValue::M(example.map_values.iter().map(|v| (v.0.clone(), AttributeValue::S(v.1.clone()))).collect())),
-        ])))
+        .set_item(Some(map))
         .send()
         .await
         .expect("To be able to put");
