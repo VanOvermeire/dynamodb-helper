@@ -135,7 +135,10 @@ And the scan method returns `Result<Vec<ExampleStruct>, ExampleStructDbScanError
 
 ### Exclusions
 
-You can optionally decide against generating methods, either because you want to generate less code, or because you think having something like delete / delete table available is too dangerous.
+You can optionally decide against generating methods. There are various reasons for doing this:
+- `scan` requires an additional import and dependency
+- some codes might be too dangerous to expose (like `delete_table`)
+- more exclusions means less generated code. For example, with only build and get left enabled, the amount of generated code will be about almost 50% smaller (15 kb)
 
 ```
 #[derive(DynamoDb)]
@@ -149,4 +152,4 @@ pub struct ExampleTestStruct {
 
 'Exclusions' accepts the following parameters: "new", "build", "get" (which will also exclude get_by_partition_key when that's applicable), "batch_get", "put", "batch_put", "delete", "scan", "create_table" and "delete_table".
 
-Traits and errors will only be generated when they are relevant.
+Traits and errors will only be generated when they necessary.
