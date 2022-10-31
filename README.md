@@ -30,9 +30,10 @@ Pull requests with improvements or additional features are appreciated. They sho
 
 - handle pagination for query and batch
 - support more types of lists and maps
-  - also support nested structs?
-- better documentation in the library itself
+  - also support nested structs? newtypes!
+- documentation: exact signatures of all the methods and traits
 - allow to change names as they are saved in DynamoDB
+- add clippy
 
 ### Possible improvements
 
@@ -42,5 +43,3 @@ Pull requests with improvements or additional features are appreciated. They sho
 - current setup will set up a DynamoDB client for every helper struct, which is not optimal
 - allow decision on pub visibility of methods (default pub)?
 - support stringset, numberset, binaryset and binary
-- if put and batch put are excluded, we could reduce code size further by not generating the `From<Struct>`
-  - if all gets are excluded (not currently possible), the parser error and `TryFrom<HashMap>` are not needed
