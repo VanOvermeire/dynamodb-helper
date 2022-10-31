@@ -19,14 +19,18 @@ jobs:
       - name: Run all tests
         run: cargo test
 
-#  publish:
-#    needs:
-#      - test
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions-rs/cargo@v1
-#        with:
-#          command: login
-#          args: ${{ secrets.CRATES_TOKEN }}
-#      - name: Publish to cargo
-#        run: cargo publish
+  publish:
+    needs:
+      - test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - name: Login to Cargo
+        uses: actions-rs/cargo@v1
+        with:
+          command: login
+          args: ${{ secrets.CRATES_TOKEN }}
+      - name: Publish to Cargo
+        run: cargo publish
+        working-directory: dynamodb-helper # only interested in the subdir (with our macro)
