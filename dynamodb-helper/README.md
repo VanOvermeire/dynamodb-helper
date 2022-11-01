@@ -82,24 +82,24 @@ And add the `tokio-stream` dependency. Alternatively, you can [exclude generatio
 ### Generated structs and methods
 
 The macro will implement the following traits:
-- `From<HashMap<String, AttributeValue>>` for your struct
-- `From<YourStruct>` for `HashMap<String, AttributeValue>`
+- `TryFrom<HashMap<String, AttributeValue>>` for your struct (because this might fail if the data from DynamoDB is not what you expect it to be)
+- `From<YourStruct>` for `HashMap<String, AttributeValue>` (*should* succeed because it is based on typed info, though it might fail further downstream if DynamoDB config and data is not what was expected)
 
-The macro will also generate a struct with the name of the annotated struct plus the suffix `Db`, with the following methods:
-- `new()`
-- `build()`
-- `create_table()`
-- `create_table_with_provisioned_throughput()`
-- `delete_table()`
-- `get()`
-- `get_by_partition_key()` but only when you have a complex key (partition plus range)
-- `batch_get()`
-- `batch_put()` which only works for *new* items
-- `scan()`
-- `put()`
-- `delete()`
+The macro will also generate a struct with the name of the annotated struct plus the suffix `Db`, with the following methods (assuming your annotated struct is called `ExampleStruct`):
+- `fn new(client: aws_sdk_dynamodb::Client, table: &str) -> Self`
+- `async fn build(region: aws_sdk_dynamodb::Region, table: &str) -> Self`
+- `async fn create_table(&self) -> Result<CreateTableOutput, SdkError<CreateTableError>>`
+- `async fn create_table_with_provisioned_throughput(&self, read_capacity: i64, write_capacity: i64) -> Result<CreateTableOutput, SdkError<CreateTableError>>`
+- `async fn delete_table(&self) -> Result<DeleteTableOutput, SdkError<DeleteTableError>>`
+- `async fn get(&self, partition: String) -> Result<Option<ExampleStruct>, ExampleStructDbGetError>` (custom error)
+- `async fn get_by_partition_key(&self, partition: String) -> Result<Vec<ExampleStruct>, ExampleStructDbGetByPartitionError>` (only when you have a complex key, i.e. partition plus range; custom error)
+- `async fn batch_get(&self, keys: Vec<String>) -> Result<Vec<ExampleStruct>, ExampleStructDbBatchGetError>` (custom error)
+- `async fn scan(&self) -> Result<Vec<ExampleStruct>, ExampleStructDbScanError>` (custom error)
+- `async fn put(&self, input: ExampleStruct) -> Result<PutItemOutput, SdkError<PutItemError>>`
+- `async fn batch_put(&self, items: Vec<ExampleStruct>) -> Result<BatchWriteItemOutput, SdkError<BatchWriteItemError>>` (only for *new* items)
+- `async fn delete(&self, partition: String) -> Result<DeleteItemOutput, SdkError<DeleteItemError>>`
 
-The create and delete table methods are appropriate for testing, pocs and smaller projects. For real applications it is probably better to create the tables as IAC and to pass the names to `new()` or `build()`.
+The `create_table` and `delete_table` methods are appropriate for testing, pocs and smaller projects. For real applications it is probably better to create the tables as IAC and to pass the names to `new()` or `build()`.
 
 Both the client and table name are exposed as public fields in case you also want to use these fields for custom queries.
 
