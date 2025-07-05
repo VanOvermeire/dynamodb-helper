@@ -1,8 +1,7 @@
 use std::thread::sleep;
 use std::time::Duration;
-use aws_sdk_dynamodb::{Region};
+use aws_sdk_dynamodb::config::Region;
 use dynamodb_helper::DynamoDb;
-use tokio_stream::StreamExt;
 
 #[derive(DynamoDb, Debug)]
 #[exclusion("batch_get")]
@@ -17,12 +16,12 @@ pub struct ExampleStruct {
 async fn main() {
     // unlike the tests, this example uses real DynamoDB - so you'll need credentials if you want this to work //
     println!("Setting up our client");
-    let client = ExampleStructDb::build(Region::new("eu-west-1"), "exampleTable").await;
-
+    let client = ExampleStructDb::build(Region::new("eu-west-1"), "dynamoDbHelperExampleTable").await;
+    
     println!("Creating table");
     client.create_table().await.expect("Create table to work");
     println!("Waiting a bit until table is available");
-    sleep(Duration::from_secs(14)); // better to check readiness, but ok for demonstration purposes
+    sleep(Duration::from_secs(15)); // better to check readiness, but ok for demonstration purposes
 
     let example = ExampleStruct {
         partition_key: "abc123".to_string(),
@@ -36,7 +35,7 @@ async fn main() {
 
     println!("Retrieving the example by its partition key");
     let result = client.get("abc123".to_string()).await.expect("To be able to get our struct back");
-    println!("Got back {:?}", result);
+    println!("Got back {result:?}");
 
     println!("Cleaning up");
     client.delete_table().await.expect("Delete table to work");

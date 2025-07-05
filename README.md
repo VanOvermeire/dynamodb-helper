@@ -30,18 +30,17 @@ Pull requests with improvements or additional features are appreciated. They sho
 
 - handle pagination for query and batch
 - support more types of lists and maps
-- allow to change names as they are saved in DynamoDB
-- add clippy
+- allow changing names as they are saved in DynamoDB
 - macro error handling with `syn::Error` or `proc_macro_error`
 
 ### Possible improvements
 
-(But not very high priority...)
+(Not high priority...)
 
 - also support nested structs? newtypes!
 - smarter handling of &str / String
 - newtypes for `create_table_with_provisioned_throughput` params?
-- if an it test panics, the table is not destroyed...
+- if an IT test panics, the table is not destroyed...
 - current setup will set up a DynamoDB client for every helper struct, which is not optimal
 - allow decision on pub visibility of methods (default pub)?
 - support stringset, numberset, binaryset and binary

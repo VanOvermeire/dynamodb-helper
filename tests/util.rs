@@ -1,10 +1,10 @@
 use std::collections::HashMap;
-use aws_sdk_dynamodb::{Client, Credentials, Endpoint, Region};
-use aws_sdk_dynamodb::model::{AttributeDefinition, AttributeValue, BillingMode, KeySchemaElement, KeyType, ScalarAttributeType};
-use aws_sdk_dynamodb::output::GetItemOutput;
-use http::Uri;
+use aws_sdk_dynamodb::Client;
+use aws_sdk_dynamodb::config::{Credentials, Region};
+use aws_sdk_dynamodb::operation::get_item::GetItemOutput;
+use aws_sdk_dynamodb::types::{AttributeDefinition, AttributeValue, BillingMode, KeySchemaElement, KeyType, ScalarAttributeType};
 use dynamodb_helper::DynamoDb;
-use tokio_stream::StreamExt;
+// use tokio_stream::StreamExt;
 
 #[derive(DynamoDb, Debug, Clone)]
 pub struct OrderStruct {
@@ -66,7 +66,7 @@ pub async fn create_client() -> Client {
 
     let dynamodb_local_config = aws_sdk_dynamodb::config::Builder::from(&config)
         .region(Some(Region::from_static("eu-west-1")))
-        .endpoint_resolver(Endpoint::immutable(Uri::from_static("http://localhost:8000")))
+        .endpoint_url("http://localhost:8000")
         .build();
     let client = Client::from_conf(dynamodb_local_config);
     client
@@ -78,11 +78,13 @@ pub async fn init_table(client: &Client, table_name: &str, partition_key: &str, 
             AttributeDefinition::builder()
                 .attribute_name(partition_key)
                 .attribute_type(ScalarAttributeType::S)
-                .build(),
+                .build()
+                .unwrap(),
             AttributeDefinition::builder()
                 .attribute_name(range_key)
                 .attribute_type(ScalarAttributeType::N)
-                .build(),
+                .build()
+                .unwrap(),
         ]
     } else {
         vec![
@@ -90,6 +92,7 @@ pub async fn init_table(client: &Client, table_name: &str, partition_key: &str, 
                 .attribute_name(partition_key)
                 .attribute_type(ScalarAttributeType::S)
                 .build()
+                .unwrap()
         ]
     };
 
@@ -98,11 +101,13 @@ pub async fn init_table(client: &Client, table_name: &str, partition_key: &str, 
             KeySchemaElement::builder()
                 .key_type(KeyType::Hash)
                 .attribute_name(partition_key)
-                .build(),
+                .build()
+                .unwrap(),
             KeySchemaElement::builder()
                 .key_type(KeyType::Range)
                 .attribute_name(range_key)
-                .build(),
+                .build()
+                .unwrap(),
         ]
     } else {
         vec![
@@ -110,6 +115,7 @@ pub async fn init_table(client: &Client, table_name: &str, partition_key: &str, 
                 .key_type(KeyType::Hash)
                 .attribute_name(partition_key)
                 .build()
+                .unwrap(),
         ]
     };
 

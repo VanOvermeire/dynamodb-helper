@@ -1,8 +1,8 @@
 pub mod util;
 
-use aws_sdk_dynamodb::error::CreateTableError;
-use aws_sdk_dynamodb::model::KeyType;
-use aws_sdk_dynamodb::types::SdkError;
+use aws_sdk_dynamodb::error::SdkError;
+use aws_sdk_dynamodb::operation::create_table::CreateTableError;
+use aws_sdk_dynamodb::types::KeyType;
 use util::*;
 
 #[tokio::test]
@@ -25,10 +25,10 @@ async fn should_be_able_to_create_a_table() {
 
     let table = result.table.unwrap();
 
-    assert_eq!(table.key_schema.as_ref().unwrap()[0].attribute_name.as_ref().unwrap(), "an_id");
-    assert_eq!(table.key_schema.as_ref().unwrap()[0].key_type.as_ref().unwrap(), &KeyType::Hash);
-    assert_eq!(table.key_schema.as_ref().unwrap()[1].attribute_name.as_ref().unwrap(), "a_range");
-    assert_eq!(table.key_schema.as_ref().unwrap()[1].key_type.as_ref().unwrap(), &KeyType::Range);
+    assert_eq!(table.key_schema.as_ref().unwrap()[0].attribute_name, "an_id");
+    assert_eq!(table.key_schema.as_ref().unwrap()[0].key_type, KeyType::Hash);
+    assert_eq!(table.key_schema.as_ref().unwrap()[1].attribute_name, "a_range");
+    assert_eq!(table.key_schema.as_ref().unwrap()[1].key_type, KeyType::Range);
 
     destroy_table(&client, create_table).await;
 }
@@ -70,10 +70,10 @@ async fn should_be_able_to_create_provisioned_table() {
 
     let table = result.table.unwrap();
 
-    assert_eq!(table.key_schema.as_ref().unwrap()[0].attribute_name.as_ref().unwrap(), "an_id");
-    assert_eq!(table.key_schema.as_ref().unwrap()[0].key_type.as_ref().unwrap(), &KeyType::Hash);
-    assert_eq!(table.key_schema.as_ref().unwrap()[1].attribute_name.as_ref().unwrap(), "a_range");
-    assert_eq!(table.key_schema.as_ref().unwrap()[1].key_type.as_ref().unwrap(), &KeyType::Range);
+    assert_eq!(table.key_schema.as_ref().unwrap()[0].attribute_name, "an_id");
+    assert_eq!(table.key_schema.as_ref().unwrap()[0].key_type, KeyType::Hash);
+    assert_eq!(table.key_schema.as_ref().unwrap()[1].attribute_name, "a_range");
+    assert_eq!(table.key_schema.as_ref().unwrap()[1].key_type, KeyType::Range);
     assert_eq!(table.provisioned_throughput.as_ref().unwrap().read_capacity_units.unwrap(), 5);
     assert_eq!(table.provisioned_throughput.as_ref().unwrap().write_capacity_units.unwrap(), 7);
 

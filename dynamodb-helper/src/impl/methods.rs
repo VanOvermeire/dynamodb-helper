@@ -1,5 +1,5 @@
 use quote::quote;
-use quote::__private::Ident;
+use proc_macro2::Ident;
 use syn::{Type};
 use crate::{dynamo_type, scalar_dynamo_type, DynamoType, DynamoScalarType};
 
@@ -16,7 +16,7 @@ pub fn new_method(helper_ident: &Ident) -> proc_macro2::TokenStream {
 
 pub fn build_method(helper_ident: &Ident) -> proc_macro2::TokenStream {
     quote! {
-        pub async fn build(region: aws_sdk_dynamodb::Region, table: &str) -> Self {
+        pub async fn build(region: aws_sdk_dynamodb::config::Region, table: &str) -> Self {
             let region_provider = aws_config::meta::region::RegionProviderChain::first_try(region).or_default_provider();
             let shared_config = aws_config::from_env().region(region_provider).load().await;
             #helper_ident {
@@ -29,7 +29,7 @@ pub fn build_method(helper_ident: &Ident) -> proc_macro2::TokenStream {
 
 pub fn put_method(struct_name: &Ident) -> proc_macro2::TokenStream {
     quote! {
-        pub async fn put(&self, input: #struct_name) -> Result<aws_sdk_dynamodb::output::PutItemOutput, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::PutItemError>> {
+        pub async fn put(&self, input: #struct_name) -> Result<aws_sdk_dynamodb::operation::put_item::PutItemOutput, aws_sdk_dynamodb::error::SdkError<aws_sdk_dynamodb::operation::put_item::PutItemError>> {
             self.client.put_item()
                 .table_name(self.table.to_string())
                 .set_item(Some(input.into()))
@@ -50,7 +50,7 @@ pub fn delete_method(struct_name: &Ident, partition_key_ident_and_type: (&Ident,
         let range_key_attribute_value = get_attribute_type_for_key(range_key_type, Ident::new("range", struct_name.span()));
 
         quote! {
-            pub async fn delete(&self, partition: #partition_key_type, range: #range_key_type) -> Result<aws_sdk_dynamodb::output::DeleteItemOutput, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::DeleteItemError>> {
+            pub async fn delete(&self, partition: #partition_key_type, range: #range_key_type) -> Result<aws_sdk_dynamodb::operation::delete_item::DeleteItemOutput, aws_sdk_dynamodb::error::SdkError<aws_sdk_dynamodb::operation::delete_item::DeleteItemError>> {
                 self.client.delete_item()
                     .table_name(&self.table)
                     .key(#partition_key_name, #partition_key_attribute_value)
@@ -61,7 +61,7 @@ pub fn delete_method(struct_name: &Ident, partition_key_ident_and_type: (&Ident,
         }
     } else {
         quote! {
-            pub async fn delete(&self, partition: #partition_key_type) -> Result<aws_sdk_dynamodb::output::DeleteItemOutput, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::DeleteItemError>> {
+            pub async fn delete(&self, partition: #partition_key_type) -> Result<aws_sdk_dynamodb::operation::delete_item::DeleteItemOutput, aws_sdk_dynamodb::error::SdkError<aws_sdk_dynamodb::operation::delete_item::DeleteItemError>> {
                 self.client.delete_item()
                     .table_name(&self.table)
                     .key(#partition_key_name, #partition_key_attribute_value)
@@ -92,9 +92,9 @@ pub fn get_methods(struct_name: &Ident, get_error: &Ident, get_by_partition_erro
                     .send()
                     .await?;
 
-                let mapped_result: Vec<#struct_name> = result.items()
-                    .map(|v| v.to_vec())
-                    .unwrap_or_else(|| vec![])
+                let mapped_result: Vec<#struct_name> = result
+                    .items()
+                    .to_vec()
                     .iter()
                     .map(|v| v.try_into())
                     .collect::<Result<Vec<_>,_>>()?;
@@ -141,16 +141,17 @@ pub fn batch_get(struct_name: &Ident, error: &Ident, partition_key_ident_and_typ
 
         quote! {
             pub async fn batch_get(&self, keys: Vec<(#partition_key_type, #range_key_type)>) -> Result<Vec<#struct_name>, #error> {
-                let mapped_keys: Vec<std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>> = keys.into_iter().map(|(partition, range)| {
+                let mapped_keys: Vec<std::collections::HashMap<String, aws_sdk_dynamodb::types::AttributeValue>> = keys.into_iter().map(|(partition, range)| {
                     std::collections::HashMap::from([
                         (#partition_key_name.to_string(), #partition_key_attribute_value),
                         (#range_key_name.to_string(), #range_key_attribute_value),
                     ])
                 }).collect();
 
-                let attrs = aws_sdk_dynamodb::model::KeysAndAttributes::builder()
+                let attrs = aws_sdk_dynamodb::types::KeysAndAttributes::builder()
                     .set_keys(Some(mapped_keys))
-                    .build();
+                    .build()
+                    .expect("building keys and attributes to succeed");
 
                 let mut table_map = std::collections::HashMap::from([
                     (self.table.to_string(), attrs)
@@ -175,15 +176,16 @@ pub fn batch_get(struct_name: &Ident, error: &Ident, partition_key_ident_and_typ
     } else {
         quote! {
             pub async fn batch_get(&self, keys: Vec<#partition_key_type>) -> Result<Vec<#struct_name>, #error> {
-                let mapped_keys: Vec<std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>> = keys.into_iter().map(|partition| {
+                let mapped_keys: Vec<std::collections::HashMap<String, aws_sdk_dynamodb::types::AttributeValue>> = keys.into_iter().map(|partition| {
                     std::collections::HashMap::from([
                         (#partition_key_name.to_string(), #partition_key_attribute_value)
                     ])
                 }).collect();
 
-                let attrs = aws_sdk_dynamodb::model::KeysAndAttributes::builder()
+                let attrs = aws_sdk_dynamodb::types::KeysAndAttributes::builder()
                     .set_keys(Some(mapped_keys))
-                    .build();
+                    .build()
+                    .expect("building keys and attributes to succeed");
 
                 let mut table_map = std::collections::HashMap::from([
                     (self.table.to_string(), attrs)
@@ -210,17 +212,19 @@ pub fn batch_get(struct_name: &Ident, error: &Ident, partition_key_ident_and_typ
 
 pub fn batch_put_method(struct_name: &Ident) -> proc_macro2::TokenStream {
     quote! {
-        pub async fn batch_put(&self, items: Vec<#struct_name>) -> Result<aws_sdk_dynamodb::output::BatchWriteItemOutput, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::BatchWriteItemError>> {
-            let items_as_maps: Vec<std::collections::HashMap<String, aws_sdk_dynamodb::model::AttributeValue>> = items.into_iter()
+        pub async fn batch_put(&self, items: Vec<#struct_name>) -> Result<aws_sdk_dynamodb::operation::batch_write_item::BatchWriteItemOutput, aws_sdk_dynamodb::error::SdkError<aws_sdk_dynamodb::operation::batch_write_item::BatchWriteItemError>> {
+            let items_as_maps: Vec<std::collections::HashMap<String, aws_sdk_dynamodb::types::AttributeValue>> = items.into_iter()
                 .map(|i| i.into())
                 .collect();
 
-            let requests: Vec<aws_sdk_dynamodb::model::WriteRequest> = items_as_maps.into_iter()
+            let requests: Vec<aws_sdk_dynamodb::types::WriteRequest> = items_as_maps.into_iter()
                 .map(|m| {
-                    aws_sdk_dynamodb::model::WriteRequest::builder()
-                        .put_request(aws_sdk_dynamodb::model::PutRequest::builder()
+                    aws_sdk_dynamodb::types::WriteRequest::builder()
+                        .put_request(aws_sdk_dynamodb::types::PutRequest::builder()
                             .set_item(Some(m))
-                            .build())
+                            .build()
+                            .expect("building put request to succeed")
+                        )
                         .build()
                 })
                 .collect();
@@ -240,7 +244,7 @@ pub fn batch_put_method(struct_name: &Ident) -> proc_macro2::TokenStream {
 pub fn scan_method(struct_name: &Ident, error: &Ident) -> proc_macro2::TokenStream {
     quote! {
         pub async fn scan(&self) -> Result<Vec<#struct_name>, #error> {
-            let items: Result<Vec<std::collections::HashMap<std::string::String, aws_sdk_dynamodb::model::AttributeValue>>, _> = self.client.scan()
+            let items: Result<Vec<std::collections::HashMap<std::string::String, aws_sdk_dynamodb::types::AttributeValue>>, _> = self.client.scan()
                 .table_name(&self.table)
                 .into_paginator()
                 .items()
@@ -268,23 +272,26 @@ pub fn create_table_method(partition_key_ident_and_type: (&Ident, &Type), range_
 
         quote! {
             let ads = vec![
-                aws_sdk_dynamodb::model::AttributeDefinition::builder()
+                aws_sdk_dynamodb::types::AttributeDefinition::builder()
                     .attribute_name(#partition_key_name)
                     .attribute_type(#partition_key_attribute_value)
-                    .build(),
-                aws_sdk_dynamodb::model::AttributeDefinition::builder()
+                    .build()
+                    .expect("building attribute definition to succeed"),
+                aws_sdk_dynamodb::types::AttributeDefinition::builder()
                     .attribute_name(#range_key_name)
                     .attribute_type(#range_key_attribute_value)
-                    .build(),
+                    .build()
+                    .expect("building attribute definition to succeed"),
             ];
         }
     } else {
         quote! {
             let ads = vec![
-                aws_sdk_dynamodb::model::AttributeDefinition::builder()
+                aws_sdk_dynamodb::types::AttributeDefinition::builder()
                     .attribute_name(#partition_key_name)
                     .attribute_type(#partition_key_attribute_value)
-                    .build(),
+                    .build()
+                    .expect("building attribute definition to succeed"),
             ];
         }
     };
@@ -294,29 +301,32 @@ pub fn create_table_method(partition_key_ident_and_type: (&Ident, &Type), range_
 
         quote! {
             let keys = vec![
-                aws_sdk_dynamodb::model::KeySchemaElement::builder()
-                    .key_type(aws_sdk_dynamodb::model::KeyType::Hash)
+                aws_sdk_dynamodb::types::KeySchemaElement::builder()
+                    .key_type(aws_sdk_dynamodb::types::KeyType::Hash)
                     .attribute_name(#partition_key_name)
-                    .build(),
-                aws_sdk_dynamodb::model::KeySchemaElement::builder()
-                    .key_type(aws_sdk_dynamodb::model::KeyType::Range)
+                    .build()
+                    .expect("building keys and attributes to succeed"),
+                aws_sdk_dynamodb::types::KeySchemaElement::builder()
+                    .key_type(aws_sdk_dynamodb::types::KeyType::Range)
                     .attribute_name(#range_key_name)
-                    .build(),
+                    .build()
+                    .expect("building keys and attributes to succeed"),
             ];
         }
     } else {
         quote! {
             let keys = vec![
-                aws_sdk_dynamodb::model::KeySchemaElement::builder()
-                    .key_type(aws_sdk_dynamodb::model::KeyType::Hash)
+                aws_sdk_dynamodb::types::KeySchemaElement::builder()
+                    .key_type(aws_sdk_dynamodb::types::KeyType::Hash)
                     .attribute_name(#partition_key_name)
                     .build()
+                    .expect("building key schema to succeed")
             ];
         }
     };
 
     quote! {
-        pub async fn create_table(&self) -> Result<aws_sdk_dynamodb::output::CreateTableOutput, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::CreateTableError>> {
+        pub async fn create_table(&self) -> Result<aws_sdk_dynamodb::operation::create_table::CreateTableOutput, aws_sdk_dynamodb::error::SdkError<aws_sdk_dynamodb::operation::create_table::CreateTableError>> {
             #ads_def
             #keys_def
 
@@ -324,25 +334,26 @@ pub fn create_table_method(partition_key_ident_and_type: (&Ident, &Type), range_
                 .table_name(&self.table)
                 .set_key_schema(Some(keys))
                 .set_attribute_definitions(Some(ads))
-                .billing_mode(aws_sdk_dynamodb::model::BillingMode::PayPerRequest)
+                .billing_mode(aws_sdk_dynamodb::types::BillingMode::PayPerRequest)
                 .send()
                 .await
         }
 
-        pub async fn create_table_with_provisioned_throughput(&self, read_capacity: i64, write_capacity: i64) -> Result<aws_sdk_dynamodb::output::CreateTableOutput, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::CreateTableError>> {
+        pub async fn create_table_with_provisioned_throughput(&self, read_capacity: i64, write_capacity: i64) -> Result<aws_sdk_dynamodb::operation::create_table::CreateTableOutput, aws_sdk_dynamodb::error::SdkError<aws_sdk_dynamodb::operation::create_table::CreateTableError>> {
             #ads_def
             #keys_def
 
-            let provisioned = aws_sdk_dynamodb::model::ProvisionedThroughput::builder()
+            let provisioned = aws_sdk_dynamodb::types::ProvisionedThroughput::builder()
                 .read_capacity_units(read_capacity)
                 .write_capacity_units(write_capacity)
-                .build();
+                .build()
+                .expect("building provisioned throughput to succeed");
 
             self.client.create_table()
                 .table_name(&self.table)
                 .set_key_schema(Some(keys))
                 .set_attribute_definitions(Some(ads))
-                .billing_mode(aws_sdk_dynamodb::model::BillingMode::Provisioned)
+                .billing_mode(aws_sdk_dynamodb::types::BillingMode::Provisioned)
                 .provisioned_throughput(provisioned)
                 .send()
                 .await
@@ -352,7 +363,7 @@ pub fn create_table_method(partition_key_ident_and_type: (&Ident, &Type), range_
 
 pub fn delete_table_method() -> proc_macro2::TokenStream {
     quote! {
-        pub async fn delete_table(&self) -> Result<aws_sdk_dynamodb::output::DeleteTableOutput, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::DeleteTableError>> {
+        pub async fn delete_table(&self) -> Result<aws_sdk_dynamodb::operation::delete_table::DeleteTableOutput, aws_sdk_dynamodb::error::SdkError<aws_sdk_dynamodb::operation::delete_table::DeleteTableError>> {
             self.client.delete_table()
                 .table_name(&self.table)
                 .send()
@@ -365,17 +376,17 @@ fn get_attribute_type_for_key(key_type: &Type, name_of_attribute: Ident) -> proc
     match dynamo_type(key_type) {
         DynamoType::String => {
             quote! {
-                aws_sdk_dynamodb::model::AttributeValue::S(#name_of_attribute)
+                aws_sdk_dynamodb::types::AttributeValue::S(#name_of_attribute)
             }
         }
         DynamoType::Number => {
             quote! {
-                aws_sdk_dynamodb::model::AttributeValue::N(#name_of_attribute.to_string())
+                aws_sdk_dynamodb::types::AttributeValue::N(#name_of_attribute.to_string())
             }
         }
         DynamoType::Boolean => {
             quote! {
-                aws_sdk_dynamodb::model::AttributeValue::Bool(#name_of_attribute)
+                aws_sdk_dynamodb::types::AttributeValue::Bool(#name_of_attribute)
             }
         }
     }
@@ -385,17 +396,17 @@ fn get_scalar_attribute(key_type: &Type) -> proc_macro2::TokenStream {
     match scalar_dynamo_type(key_type) {
         DynamoScalarType::String => {
             quote! {
-                aws_sdk_dynamodb::model::ScalarAttributeType::S
+                aws_sdk_dynamodb::types::ScalarAttributeType::S
             }
         }
         DynamoScalarType::Number => {
             quote! {
-                aws_sdk_dynamodb::model::ScalarAttributeType::N
+                aws_sdk_dynamodb::types::ScalarAttributeType::N
             }
         }
         DynamoScalarType::Boolean => {
             quote! {
-                aws_sdk_dynamodb::model::ScalarAttributeType::B
+                aws_sdk_dynamodb::types::ScalarAttributeType::B
             }
         }
     }

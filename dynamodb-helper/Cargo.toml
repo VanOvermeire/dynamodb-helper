@@ -1,6 +1,6 @@
 [package]
 name = "dynamodb-helper"
-version = "0.1.2"
+version = "0.2.0"
 edition = "2021"
 description = "Macro that creates a struct for interacting with AWS DynamoDB"
 license = "MIT"
@@ -10,10 +10,10 @@ readme = "README.md"
 keywords = ["DynamoDB", "macro"]
 
 [dependencies]
-proc-macro2 = "1.0.46"
-quote = "1.0.20"
-syn = { version = "1.0.98", features = ["extra-traits"]}
-aws-sdk-dynamodb = "0.17.0"
+proc-macro2 = "1.0.95"
+quote = "1.0.40"
+syn = { version = "2.0.104", features = ["extra-traits"]}
+aws-sdk-dynamodb = "1.82.0"
 
 [lib]
 proc-macro = true

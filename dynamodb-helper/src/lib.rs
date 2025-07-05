@@ -2,12 +2,12 @@
 
 extern crate core;
 
-mod util;
+mod r#impl;
 
-use crate::util::*;
+use crate::r#impl::*;
 use quote::quote;
 use proc_macro::{TokenStream};
-use quote::__private::Ident;
+use proc_macro2::Ident;
 use syn::{parse_macro_input, DeriveInput};
 use syn::Data::Struct;
 use syn::DataStruct;
@@ -18,7 +18,7 @@ use syn::FieldsNamed;
 pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(item as DeriveInput);
     let name = ast.ident;
-    let helper_name = format!("{}Db", name);
+    let helper_name = format!("{name}Db");
     let helper_ident = Ident::new(&helper_name, name.span());
 
     let fields = match ast.data {

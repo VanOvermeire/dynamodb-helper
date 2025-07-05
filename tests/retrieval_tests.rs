@@ -2,7 +2,7 @@ extern crate core;
 
 use std::collections::HashMap;
 use std::iter::Iterator;
-use aws_sdk_dynamodb::model::AttributeValue;
+use aws_sdk_dynamodb::types::AttributeValue;
 
 pub mod util;
 use util::*;

@@ -19,7 +19,7 @@ struct ExampleStruct {
 }
 
 // thanks to the above derive, we can now create a db client
-let db = ExampleStructDb::build(aws_sdk_dynamodb::Region::new("eu-west-1"), "exampleTable").await;
+let db = ExampleStructDb::build(aws_sdk_dynamodb::config::Region::new("eu-west-1"), "exampleTable").await;
 
 // the following will return an ExampleStruct if the id is found
 let example_struct = db.get("someId".to_string()).await.expect("This one to exist");
@@ -44,7 +44,7 @@ let multiple_structs = other_db.get_by_partition_key("someId".to_string()).await
 // and you can also put, delete, scan, etc.
 ```
 
-Also see the unit and integration tests.
+Also see the `src/main.rs`, the unit and integration tests.
 
 Be sure to check the [usage info](#usage-notes) and the overview of [attributes and methods](#macro-details).
 
@@ -52,25 +52,12 @@ Be sure to check the [usage info](#usage-notes) and the overview of [attributes 
 
 ### Dependencies
 
-These dependencies are required:
+The test setup uses these dependencies:
 
 ```
-aws-config = "0.47.0"
-aws-sdk-dynamodb = "0.17.0"
+aws-config = "1.8"
+aws-sdk-dynamodb = "1.82"
 ```
-
-And possibly the `tokio-stream` dependency as well (see below)
-
-### StreamExt trait
-
-If you get an error warning about `the following trait bounds were not satisfied: impl futures_core::stream::Stream<Item = Result<...> + Unpin: Iterator` this 
-is probably caused by your use of the generated scan method, which requires the following trait to be in scope (add this to your file imports):
-
-```
-use tokio_stream::StreamExt;
-```
-
-And add the `tokio-stream` dependency. Alternatively, you can [exclude generation of the scan method](#exclusions).
 
 ## Macro details
 
@@ -119,7 +106,7 @@ Saving as *string sets* or *number sets* is not possible, other types of maps an
 
 ### Errors
 
-Most methods return a result, with the error being the appropriate AWS error. For example, create_table returns `Result<aws_sdk_dynamodb::output::CreateTableOutput, aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::CreateTableError>>`.
+Most methods return a result, with the error being the appropriate AWS error. For example, create_table returns `Result<CreateTableOutput, SdkError<CreateTableError>>`.
 
 Retrieval methods (gets, batch gets and scans) return a *custom error* because parsing the return value might fail. The returned error is an enum of the parse error and the aws error. The name of the error is based on the name of the struct.
 
@@ -128,7 +115,7 @@ For example, for the struct `ExampleStruct` our macro generates:
 ```
 pub enum ExampleStructDbScanError {
     ParseError(String),
-    AwsError(aws_sdk_dynamodb::types::SdkError<aws_sdk_dynamodb::error::ScanError>),
+    AwsError(SdkError<ScanError>),
 }
 ```
 
@@ -153,4 +140,4 @@ pub struct ExampleTestStruct {
 
 'Exclusions' accepts the following parameters: "new", "build", "get" (which will also exclude get_by_partition_key when that's applicable), "batch_get", "put", "batch_put", "delete", "scan", "create_table" and "delete_table".
 
-Traits and errors will only be generated when they necessary.
+Traits and errors will only be generated when they are necessary.
