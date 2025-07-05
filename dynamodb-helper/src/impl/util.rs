@@ -136,7 +136,6 @@ pub fn matches_type(ty: &syn::Type, type_name: &str) -> bool {
     false
 }
 
-// TODO check whether this still works
 pub fn get_macro_attribute(attrs: &[Attribute], attribute_name: &str) -> Vec<String> {
     attrs
         .iter()
@@ -156,20 +155,20 @@ pub fn get_macro_attribute(attrs: &[Attribute], attribute_name: &str) -> Vec<Str
                 _ => vec![]
             }
         })
-        .map(|att| att.replace("\"", "")) // caused by the to string, but perhaps a better way to get rid of it
+        .map(|att| att.replace("\"", "")) // caused by the to_string, probably a better way to do this
         .collect()
 }
 
-pub fn tokenstream_or_empty_if_no_retrieval_methods(stream: TokenStream2, exclusions: &[String]) -> TokenStream2 {
-    tokenstream_or_empty_if_boolean_function(stream, &|| exclusions.contains(&GET_METHOD_NAME.to_string()) && exclusions.contains(&BATCH_GET_METHOD_NAME.to_string()) && exclusions.contains(&SCAN_METHOD_NAME.to_string()))
+pub fn tokenstream_or_empty_if_no_retrieval_methods(stream: TokenStream2, exclusions: &[&str]) -> TokenStream2 {
+    tokenstream_or_empty_if_boolean_function(stream, &|| exclusions.contains(&GET_METHOD_NAME) && exclusions.contains(&BATCH_GET_METHOD_NAME) && exclusions.contains(&SCAN_METHOD_NAME))
 }
 
-pub fn tokenstream_or_empty_if_no_put_methods(stream: TokenStream2, exclusions: &[String]) -> TokenStream2 {
-    tokenstream_or_empty_if_boolean_function(stream, &|| exclusions.contains(&PUT_METHOD_NAME.to_string()) && exclusions.contains(&BATCH_PUT_METHOD_NAME.to_string()))
+pub fn tokenstream_or_empty_if_no_put_methods(stream: TokenStream2, exclusions: &[&str]) -> TokenStream2 {
+    tokenstream_or_empty_if_boolean_function(stream, &|| exclusions.contains(&PUT_METHOD_NAME) && exclusions.contains(&BATCH_PUT_METHOD_NAME))
 }
 
-pub fn tokenstream_or_empty_if_exclusion(stream: TokenStream2, method_name: &str, exclusions: &[String]) -> TokenStream2 {
-    tokenstream_or_empty_if_boolean_function(stream, &|| exclusions.contains(&method_name.to_string()))
+pub fn tokenstream_or_empty_if_exclusion(stream: TokenStream2, method_name: &str, exclusions: &[&str]) -> TokenStream2 {
+    tokenstream_or_empty_if_boolean_function(stream, &|| exclusions.contains(&method_name))
 }
 
 pub fn tokenstream_or_empty_if_boolean_function(stream: TokenStream2, fun: &dyn Fn() -> bool) -> TokenStream2 {

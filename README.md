@@ -26,21 +26,21 @@ docker run --rm -p 8000:8000 amazon/dynamodb-local
 
 Pull requests with improvements or additional features are appreciated. They should at the very least add integration tests for the new functionality - and pass the existing ones!
 
-### TODO
+### TODOs
+
+Which I'll get to if anyone needs them.
 
 - handle pagination for query and batch
 - support more types of lists and maps
 - allow changing names as they are saved in DynamoDB
 - macro error handling with `syn::Error` or `proc_macro_error`
 
-### Possible improvements
+### Improvements
 
-(Not high priority...)
+Nothing high priority though.
 
 - also support nested structs? newtypes!
-- smarter handling of &str / String
 - newtypes for `create_table_with_provisioned_throughput` params?
-- if an IT test panics, the table is not destroyed...
-- current setup will set up a DynamoDB client for every helper struct, which is not optimal
-- allow decision on pub visibility of methods (default pub)?
+- if an IT test panics, the table is not destroyed
+- the current setup will set up a DynamoDB client for every helper struct, which is not optimal
 - support stringset, numberset, binaryset and binary

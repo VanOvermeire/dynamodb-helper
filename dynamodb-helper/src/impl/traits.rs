@@ -46,14 +46,14 @@ fn try_from_hashmap_for_individual_field(f: &Field, err: &Ident) -> TokenStream 
                     }
                 }
                 IterableDynamoType::List(simp) => {
-                    let mapping = build_from_hashmap_for_list_items(simp, name_as_string.clone(), err);
+                    let mapping = build_from_hashmap_for_list_items(simp, &name_as_string, err);
 
                     quote! {
                         #name: if map.get(#name_as_string).is_some() { Some(#mapping) } else { None },
                     }
                 },
                 IterableDynamoType::Map(simp1, simp2) => {
-                    let mapping = build_from_hashmap_for_map_items(simp1, simp2, name_as_string.clone(), err);
+                    let mapping = build_from_hashmap_for_map_items(simp1, simp2, &name_as_string, err);
 
                     quote! {
                         #name: if map.get(#name_as_string).is_some() { Some(#mapping) } else { None },
@@ -71,13 +71,13 @@ fn try_from_hashmap_for_individual_field(f: &Field, err: &Ident) -> TokenStream 
                     }
                 }
                 IterableDynamoType::List(simp) => {
-                    let mapping = build_from_hashmap_for_list_items(simp, name_as_string.clone(), err);
+                    let mapping = build_from_hashmap_for_list_items(simp, &name_as_string, err);
                     quote! {
                         #name: #mapping,
                     }
                 },
                 IterableDynamoType::Map(simp1, simp2) => {
-                    let mapping = build_from_hashmap_for_map_items(simp1, simp2, name_as_string.clone(), err);
+                    let mapping = build_from_hashmap_for_map_items(simp1, simp2, &name_as_string, err);
                     quote! {
                         #name: #mapping,
                     }
@@ -87,7 +87,7 @@ fn try_from_hashmap_for_individual_field(f: &Field, err: &Ident) -> TokenStream 
     }
 }
 
-fn build_from_hashmap_for_list_items(simp: DynamoType, name_as_string: String, err: &Ident) -> TokenStream {
+fn build_from_hashmap_for_list_items(simp: DynamoType, name_as_string: &str, err: &Ident) -> TokenStream {
     match simp {
         DynamoType::String => {
             quote! {
@@ -103,7 +103,7 @@ fn build_from_hashmap_for_list_items(simp: DynamoType, name_as_string: String, e
     }
 }
 
-fn build_from_hashmap_for_map_items(simp1: DynamoType, simp2: DynamoType, name_as_string: String, err: &Ident) -> proc_macro2::TokenStream {
+fn build_from_hashmap_for_map_items(simp1: DynamoType, simp2: DynamoType, name_as_string: &str, err: &Ident) -> proc_macro2::TokenStream {
     match (simp1, simp2) {
         (DynamoType::String, DynamoType::String) => {
             quote! {
@@ -149,7 +149,7 @@ pub fn from_struct_for_hashmap(struct_name: &Ident, fields: &Punctuated<Field, C
     }
 }
 
-fn map_insert_for(val: IterableDynamoType, name_as_string: String) -> proc_macro2::TokenStream {
+fn map_insert_for(val: IterableDynamoType, name_as_string: String) -> TokenStream {
     match val {
         IterableDynamoType::Simple(simp) => {
             match simp {

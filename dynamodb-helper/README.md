@@ -9,7 +9,6 @@ But dynomite derive is based on an unofficial Rust SDK called [rusoto](https://g
 
 ```
 use dynamodb_helper::DynamoDb;
-use tokio_stream::StreamExt; // needed if the scan method is not excluded
 
 #[derive(DynamoDb)]
 struct ExampleStruct {
