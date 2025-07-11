@@ -4,7 +4,6 @@ use aws_sdk_dynamodb::config::{Credentials, Region};
 use aws_sdk_dynamodb::operation::get_item::GetItemOutput;
 use aws_sdk_dynamodb::types::{AttributeDefinition, AttributeValue, BillingMode, KeySchemaElement, KeyType, ScalarAttributeType};
 use dynamodb_helper::DynamoDb;
-// use tokio_stream::StreamExt;
 
 #[derive(DynamoDb, Debug, Clone)]
 pub struct OrderStruct {
