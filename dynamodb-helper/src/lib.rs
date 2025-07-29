@@ -60,8 +60,27 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
     let (get_error, get_by_partition_error, batch_get_error, scan_error, parse_error) = generate_error_names(&helper_ident);
     let errors = generate_helper_error(&helper_ident, &exclusion_list_refs);
 
-    let partition_key_ident_and_type = get_ident_and_type_of_field_annotated_with(fields, PARTITION_KEY_ATTRIBUTE_NAME)
-        .expect("You need to define a partition key for your DynamoDB struct! Place the field attribute `#[partition]` above the property that will serve as your key. Note that DynamoDB only supports strings, numbers and booleans as keys.");
+    let partition_key_ident_and_type = match get_ident_and_type_of_field_annotated_with(fields, PARTITION_KEY_ATTRIBUTE_NAME) {
+        Some(res) => res,
+        None => {
+            return Error::new(
+                name.span(),
+                "You need to define a partition key for your DynamoDB struct! Place the `#[partition]` attribute above the field that serves as your key.".to_string()
+            )
+            .into_compile_error()
+            .into();
+        }
+    };
+
+    match dynamo_type(partition_key_ident_and_type.1) {
+        None => {
+            return Error::new(
+                partition_key_ident_and_type.0.span(),
+                "DynamoDB only supports strings, numbers and booleans as keys".to_string()
+            ).into_compile_error().into();
+        }
+        _ => {}
+    }
 
     let range_key_ident_and_type = get_ident_and_type_of_field_annotated_with(fields, RANGE_KEY_ATTRIBUTE_NAME);
 

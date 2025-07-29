@@ -1,0 +1,5 @@
+error: DynamoDB only supports strings, numbers and booleans as keys
+ --> tests/fails/error_for_invalid_partition_key.rs:6:5
+  |
+6 |     invalid: Vec<String>,
+  |     ^^^^^^^

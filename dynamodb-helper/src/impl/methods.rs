@@ -390,7 +390,7 @@ pub fn delete_table_method() -> proc_macro2::TokenStream {
 }
 
 fn get_attribute_type_for_key(key_type: &Type, name_of_attribute: Ident) -> proc_macro2::TokenStream {
-    match dynamo_type(key_type) {
+    match dynamo_type(key_type).expect("Did not find a valid DynamoDB type") {
         DynamoType::String => {
             quote! {
                 aws_sdk_dynamodb::types::AttributeValue::S(#name_of_attribute)

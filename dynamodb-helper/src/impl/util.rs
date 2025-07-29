@@ -61,7 +61,7 @@ fn iterable_dynamo_type(ty: &syn::Type) -> IterableDynamoType {
         if first_match == "Vec" {
             if let AngleBracketed(AngleBracketedGenericArguments { args, .. }) = &p.path.segments[0].arguments {
                 return match &args[0] {
-                    syn::GenericArgument::Type(t) => IterableDynamoType::List(dynamo_type(t)),
+                    syn::GenericArgument::Type(t) => IterableDynamoType::List(dynamo_type(t).expect("Did not find a valid DynamoDB type")),
                     _ => unreachable!("Vec should have an inner type - but we did not find one"),
                 };
             }
@@ -75,25 +75,28 @@ fn iterable_dynamo_type(ty: &syn::Type) -> IterableDynamoType {
                     })
                     .collect();
                 return IterableDynamoType::Map(
-                    dynamo_type(map_args[0].expect("We expect HashMap to have a first argument - but we did not find one")),
-                    dynamo_type(map_args[1].expect("We expect HashMap to have a second argument - but we did not find one")),
+                    dynamo_type(map_args[0].expect("We expect HashMap to have a first argument - but we did not find one")).expect("Did not find a valid DynamoDB type"),
+                    dynamo_type(map_args[1].expect("We expect HashMap to have a second argument - but we did not find one")).expect("Did not find a valid DynamoDB type"),
                 );
             }
         }
     }
-    IterableDynamoType::Simple(dynamo_type(ty))
+    IterableDynamoType::Simple(dynamo_type(ty).expect("Did not find a valid DynamoDB type"))
 }
 
-pub fn dynamo_type(ty: &syn::Type) -> DynamoType {
+pub fn dynamo_type(ty: &syn::Type) -> Option<DynamoType> {
     if matches_any_type(ty, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
-        DynamoType::Number
+        Some(DynamoType::Number)
     } else if matches_type(ty, "bool") {
-        DynamoType::Boolean
+        Some(DynamoType::Boolean)
+    } else if matches_type(ty, "String") {
+        Some(DynamoType::String)
     } else {
-        DynamoType::String
+        None
     }
 }
 
+// TODO also option
 pub fn scalar_dynamo_type(ty: &syn::Type) -> DynamoScalarType {
     if matches_any_type(ty, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
         DynamoScalarType::Number

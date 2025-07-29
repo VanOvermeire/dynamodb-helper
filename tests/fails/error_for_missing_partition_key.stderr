@@ -1,0 +1,5 @@
+error: You need to define a partition key for your DynamoDB struct! Place the `#[partition]` attribute above the field that serves as your key.
+ --> tests/fails/error_for_missing_partition_key.rs:4:12
+  |
+4 | pub struct Example {
+  |            ^^^^^^^
