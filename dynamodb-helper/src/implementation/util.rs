@@ -12,7 +12,7 @@ use syn::{Attribute, Meta};
 pub const ALL_NUMERIC_TYPES_AS_STRINGS: &[&str] = &["u8", "u16", "u32", "u64", "u128", "i8", "i16", "i32", "i64", "i128", "f32", "f64"];
 
 #[derive(Debug)]
-pub enum DynamoScalarType {
+pub enum DynamoType {
     Number,
     String,
     Boolean,
@@ -29,13 +29,6 @@ pub enum IterableDynamoType {
     Simple(DynamoType),
     List(DynamoType),
     Map(DynamoType, DynamoType),
-}
-
-#[derive(Debug)]
-pub enum DynamoType {
-    Number,
-    String,
-    Boolean,
 }
 
 pub fn possibly_optional_dynamo_type(ty: &syn::Type) -> PossiblyOptionalDynamoType {
@@ -93,17 +86,6 @@ pub fn dynamo_type(ty: &syn::Type) -> Option<DynamoType> {
         Some(DynamoType::String)
     } else {
         None
-    }
-}
-
-// TODO also option
-pub fn scalar_dynamo_type(ty: &syn::Type) -> DynamoScalarType {
-    if matches_any_type(ty, ALL_NUMERIC_TYPES_AS_STRINGS.to_vec()) {
-        DynamoScalarType::Number
-    } else if matches_type(ty, "bool") {
-        DynamoScalarType::Boolean
-    } else {
-        DynamoScalarType::String
     }
 }
 

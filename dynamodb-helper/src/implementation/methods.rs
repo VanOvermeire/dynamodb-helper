@@ -1,4 +1,4 @@
-use crate::{dynamo_type, scalar_dynamo_type, DynamoScalarType, DynamoType};
+use crate::{dynamo_type, DynamoType};
 use proc_macro2::Ident;
 use quote::quote;
 use syn::Type;
@@ -410,18 +410,18 @@ fn get_attribute_type_for_key(key_type: &Type, name_of_attribute: Ident) -> proc
 }
 
 fn get_scalar_attribute(key_type: &Type) -> proc_macro2::TokenStream {
-    match scalar_dynamo_type(key_type) {
-        DynamoScalarType::String => {
+    match dynamo_type(key_type).expect("Did not find a valid DynamoDB type") {
+        DynamoType::String => {
             quote! {
                 aws_sdk_dynamodb::types::ScalarAttributeType::S
             }
         }
-        DynamoScalarType::Number => {
+        DynamoType::Number => {
             quote! {
                 aws_sdk_dynamodb::types::ScalarAttributeType::N
             }
         }
-        DynamoScalarType::Boolean => {
+        DynamoType::Boolean => {
             quote! {
                 aws_sdk_dynamodb::types::ScalarAttributeType::B
             }
