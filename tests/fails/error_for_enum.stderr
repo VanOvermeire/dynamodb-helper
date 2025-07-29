@@ -1,0 +1,5 @@
+error: DynamoDB macro cannot be used with an enum - use a struct instead
+ --> tests/fails/error_for_enum.rs:4:10
+  |
+4 | pub enum SomeEnum {
+  |          ^^^^^^^^
