@@ -1,0 +1,5 @@
+error: Only lists with strings or numbers are supported
+ --> tests/fails/error_for_invalid_list.rs:8:5
+  |
+8 |     invalid: Vec<bool>,
+  |     ^^^^^^^
