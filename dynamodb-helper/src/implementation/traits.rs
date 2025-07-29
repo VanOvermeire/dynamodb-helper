@@ -5,7 +5,6 @@ use quote::quote;
 use syn::punctuated::Punctuated;
 use syn::token::Comma;
 use syn::{Error, Field};
-use syn::spanned::Spanned;
 
 pub fn try_from_hashmap_to_struct(struct_name: &Ident, error: &Ident, fields: &Punctuated<Field, Comma>) -> TokenStream {
     let struct_inserts = fields.iter().map(|f| try_from_hashmap_for_individual_field(f, error));

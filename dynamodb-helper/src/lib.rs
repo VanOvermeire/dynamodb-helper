@@ -2,9 +2,9 @@
 
 extern crate core;
 
-mod r#impl; // TODO rename
+mod implementation;
 
-use crate::r#impl::*;
+use crate::implementation::*;
 use proc_macro::TokenStream;
 use proc_macro2::Ident;
 use quote::quote;
