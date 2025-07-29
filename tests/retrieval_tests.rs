@@ -1,8 +1,8 @@
 extern crate core;
 
+use aws_sdk_dynamodb::types::AttributeValue;
 use std::collections::HashMap;
 use std::iter::Iterator;
-use aws_sdk_dynamodb::types::AttributeValue;
 
 pub mod util;
 use util::*;
@@ -20,9 +20,7 @@ async fn should_be_able_to_get_from_dynamo() {
 
     put_order_struct(get_table, &client, &example).await;
 
-    let result_option = db.get(example.an_id.to_string())
-        .await
-        .expect("To be able to get a result");
+    let result_option = db.get(example.an_id.to_string()).await.expect("To be able to get a result");
 
     destroy_table(&client, get_table).await;
 
@@ -64,7 +62,7 @@ async fn should_return_error_result_when_parsing_fails_for_get() {
 
     match result {
         Err(OrderStructDbGetError::ParseError(v)) => v.contains("Could not convert"),
-        _ => panic!("Did not find expected error result")
+        _ => panic!("Did not find expected error result"),
     };
 }
 
@@ -81,7 +79,8 @@ async fn should_be_able_to_get_from_dynamo_with_range_key() {
 
     put_order_with_range_struct(get_table, &client, &example).await;
 
-    let result_option = db.get(example.an_id.to_string(), example.a_range)
+    let result_option = db
+        .get(example.an_id.to_string(), example.a_range)
         .await
         .expect("To be able to get a result");
 
@@ -108,7 +107,7 @@ async fn should_be_able_to_get_from_dynamo_only_using_partition_part() {
         name: "Me".to_string(),
         total_amount: 6,
         names: vec!["one".to_string()],
-        map_values: Default::default()
+        map_values: Default::default(),
     };
     let second_example = OrderStructWithRange {
         an_id: "uid123".to_string(),
@@ -116,7 +115,7 @@ async fn should_be_able_to_get_from_dynamo_only_using_partition_part() {
         name: "You".to_string(),
         total_amount: 7,
         names: vec!["two".to_string()],
-        map_values: Default::default()
+        map_values: Default::default(),
     };
 
     init_table(&client, get_table, "an_id", Some("a_range")).await;
@@ -126,7 +125,8 @@ async fn should_be_able_to_get_from_dynamo_only_using_partition_part() {
     put_order_with_range_struct(get_table, &client, &example).await;
     put_order_with_range_struct(get_table, &client, &second_example).await;
 
-    let result = db.get_by_partition_key(example.an_id.to_string())
+    let result = db
+        .get_by_partition_key(example.an_id.to_string())
         .await
         .expect("Get by partition key to succeed");
 
@@ -153,8 +153,20 @@ async fn should_return_error_result_when_parsing_fails_for_get_by_partition() {
         ("a_range".to_string(), AttributeValue::N(example.a_range.to_string())),
         ("name".to_string(), AttributeValue::S(example.name.to_string())),
         ("total_amount".to_string(), AttributeValue::S("not a number".to_string())),
-        ("names".to_string(), AttributeValue::L(example.names.iter().map(|v| v.clone()).map(|v| AttributeValue::S(v)).collect())),
-        ("map_values".to_string(), AttributeValue::M(example.map_values.iter().map(|v| (v.0.clone(), AttributeValue::S(v.1.clone()))).collect())),
+        (
+            "names".to_string(),
+            AttributeValue::L(example.names.iter().map(|v| v.clone()).map(|v| AttributeValue::S(v)).collect()),
+        ),
+        (
+            "map_values".to_string(),
+            AttributeValue::M(
+                example
+                    .map_values
+                    .iter()
+                    .map(|v| (v.0.clone(), AttributeValue::S(v.1.clone())))
+                    .collect(),
+            ),
+        ),
     ]);
     put_hashmap(get_table, &client, map).await;
 
@@ -164,7 +176,7 @@ async fn should_return_error_result_when_parsing_fails_for_get_by_partition() {
 
     match result {
         Err(OrderStructWithRangeDbGetByPartitionError::ParseError(v)) => v.contains("Could not convert"),
-        _ => panic!("Did not find expected error result")
+        _ => panic!("Did not find expected error result"),
     };
 }
 
@@ -181,9 +193,7 @@ async fn should_be_able_to_get_multiple_items() {
 
     let db = OrderStructDb::new(client_for_struct, get_table);
 
-    let result = db.batch_get(vec![example.an_id])
-        .await
-        .expect("Batch get to succeed");
+    let result = db.batch_get(vec![example.an_id]).await.expect("Batch get to succeed");
 
     destroy_table(&client, get_table).await;
 
@@ -201,7 +211,7 @@ async fn should_be_able_to_get_multiple_items_with_range_key() {
         name: "Me".to_string(),
         total_amount: 6,
         names: vec!["one".to_string()],
-        map_values: Default::default()
+        map_values: Default::default(),
     };
     let second_example = OrderStructWithRange {
         an_id: "uid123".to_string(),
@@ -209,7 +219,7 @@ async fn should_be_able_to_get_multiple_items_with_range_key() {
         name: "You".to_string(),
         total_amount: 7,
         names: vec!["two".to_string()],
-        map_values: Default::default()
+        map_values: Default::default(),
     };
 
     init_table(&client, get_table, "an_id", Some("a_range")).await;
@@ -219,14 +229,21 @@ async fn should_be_able_to_get_multiple_items_with_range_key() {
     put_order_with_range_struct(get_table, &client, &example).await;
     put_order_with_range_struct(get_table, &client, &second_example).await;
 
-    let result = db.batch_get(vec![(example.an_id, example.a_range), (second_example.an_id, second_example.a_range)])
+    let result = db
+        .batch_get(vec![
+            (example.an_id, example.a_range),
+            (second_example.an_id, second_example.a_range),
+        ])
         .await
         .expect("Batch get to succeed");
 
     destroy_table(&client, get_table).await;
 
     assert_eq!(result.len(), 2);
-    assert_eq!(result.iter().map(|v| v.name.to_string()).collect::<Vec<String>>(), vec!["Me", "You"]);
+    assert_eq!(
+        result.iter().map(|v| v.name.to_string()).collect::<Vec<String>>(),
+        vec!["Me", "You"]
+    );
 }
 
 #[tokio::test]
@@ -240,7 +257,7 @@ async fn should_be_able_to_scan_dynamo() {
         total_amount: 5.0,
         a_boolean: true,
         numbers: vec![],
-        something_optional: None
+        something_optional: None,
     };
     let second_example = OrderStruct {
         an_id: "uid1235".to_string(),
@@ -248,7 +265,7 @@ async fn should_be_able_to_scan_dynamo() {
         total_amount: 7.5,
         a_boolean: false,
         numbers: vec![],
-        something_optional: None
+        something_optional: None,
     };
 
     init_table(&client, scan_table, "an_id", None).await;
@@ -258,9 +275,7 @@ async fn should_be_able_to_scan_dynamo() {
     put_order_struct(scan_table, &client, &example).await;
     put_order_struct(scan_table, &client, &second_example).await;
 
-    let result = db.scan()
-        .await
-        .expect("Scan to succeed");
+    let result = db.scan().await.expect("Scan to succeed");
 
     destroy_table(&client, scan_table).await;
 
@@ -293,6 +308,6 @@ async fn should_return_error_result_when_parsing_fails_for_scan() {
 
     match result {
         Err(OrderStructDbScanError::ParseError(v)) => v.contains("Could not convert"),
-        _ => panic!("Did not find expected error result")
+        _ => panic!("Did not find expected error result"),
     };
 }

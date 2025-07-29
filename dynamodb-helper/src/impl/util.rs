@@ -1,13 +1,13 @@
-use quote::quote;
-use proc_macro2::Ident;
-use syn::{Attribute, Meta};
-use syn::{AngleBracketedGenericArguments, Field};
-use syn::PathArguments::AngleBracketed;
-use syn::punctuated::{Punctuated};
-use syn::token::Comma;
-use syn::__private::TokenStream2;
-use proc_macro2::TokenTree::Literal;
 use crate::{BATCH_GET_METHOD_NAME, BATCH_PUT_METHOD_NAME, GET_METHOD_NAME, PUT_METHOD_NAME, SCAN_METHOD_NAME};
+use proc_macro2::Ident;
+use proc_macro2::TokenTree::Literal;
+use quote::quote;
+use syn::punctuated::Punctuated;
+use syn::token::Comma;
+use syn::PathArguments::AngleBracketed;
+use syn::__private::TokenStream2;
+use syn::{AngleBracketedGenericArguments, Field};
+use syn::{Attribute, Meta};
 
 pub const ALL_NUMERIC_TYPES_AS_STRINGS: &[&str] = &["u8", "u16", "u32", "u64", "u128", "i8", "i16", "i32", "i64", "i128", "f32", "f64"];
 
@@ -44,8 +44,8 @@ pub fn possibly_optional_dynamo_type(ty: &syn::Type) -> PossiblyOptionalDynamoTy
             if let AngleBracketed(AngleBracketedGenericArguments { args, .. }) = &p.path.segments[0].arguments {
                 return match &args[0] {
                     syn::GenericArgument::Type(t) => PossiblyOptionalDynamoType::Optional(iterable_dynamo_type(t)),
-                    _ => unreachable!("Option should have an inner type - but we did not find one")
-                }
+                    _ => unreachable!("Option should have an inner type - but we did not find one"),
+                };
             }
         }
         unreachable!("Option should have inner type - but we did not find one");
@@ -62,22 +62,21 @@ fn iterable_dynamo_type(ty: &syn::Type) -> IterableDynamoType {
             if let AngleBracketed(AngleBracketedGenericArguments { args, .. }) = &p.path.segments[0].arguments {
                 return match &args[0] {
                     syn::GenericArgument::Type(t) => IterableDynamoType::List(dynamo_type(t)),
-                    _ => unreachable!("Vec should have an inner type - but we did not find one")
-                }
+                    _ => unreachable!("Vec should have an inner type - but we did not find one"),
+                };
             }
         } else if first_match == "HashMap" {
             if let AngleBracketed(AngleBracketedGenericArguments { args, .. }) = &p.path.segments[0].arguments {
-                let map_args: Vec<Option<&syn::Type>> = args.iter().map(|rabbit_hole| {
-                    match rabbit_hole {
-                        syn::GenericArgument::Type(t) => {
-                            Some(t)
-                        }
+                let map_args: Vec<Option<&syn::Type>> = args
+                    .iter()
+                    .map(|rabbit_hole| match rabbit_hole {
+                        syn::GenericArgument::Type(t) => Some(t),
                         _ => None,
-                    }
-                }).collect();
+                    })
+                    .collect();
                 return IterableDynamoType::Map(
                     dynamo_type(map_args[0].expect("We expect HashMap to have a first argument - but we did not find one")),
-                    dynamo_type(map_args[1].expect("We expect HashMap to have a second argument - but we did not find one"))
+                    dynamo_type(map_args[1].expect("We expect HashMap to have a second argument - but we did not find one")),
                 );
             }
         }
@@ -105,15 +104,20 @@ pub fn scalar_dynamo_type(ty: &syn::Type) -> DynamoScalarType {
     }
 }
 
-pub fn get_ident_and_type_of_field_annotated_with<'a>(fields: &'a Punctuated<Field, Comma>, name: &'a str) -> Option<(&'a Ident, &'a syn::Type)> {
-    fields.iter()
+pub fn get_ident_and_type_of_field_annotated_with<'a>(
+    fields: &'a Punctuated<Field, Comma>,
+    name: &'a str,
+) -> Option<(&'a Ident, &'a syn::Type)> {
+    fields
+        .iter()
         .filter(|f| get_attribute(f, name).is_some())
         .map(|f| (f.ident.as_ref().unwrap(), &f.ty))
         .next()
 }
 
 fn get_attribute<'a>(f: &'a Field, name: &'a str) -> Option<&'a Attribute> {
-    f.attrs.iter()
+    f.attrs
+        .iter()
         .find(|&attr| attr.path().segments.len() == 1 && attr.path().segments[0].ident == name)
 }
 
@@ -140,31 +144,32 @@ pub fn get_macro_attribute(attrs: &[Attribute], attribute_name: &str) -> Vec<Str
     attrs
         .iter()
         .filter(|attribute| attribute.path().is_ident(attribute_name))
-        .flat_map(|attribute| {
-            match &attribute.meta {
-                Meta::List(l) => {
-                    l.clone().tokens.into_iter().filter_map(|s| {
-                        match s {
-                            Literal(l) => {
-                                Some(l.to_string())
-                            }
-                            _ => None
-                        }
-                    }).collect()
-                }
-                _ => vec![]
-            }
+        .flat_map(|attribute| match &attribute.meta {
+            Meta::List(l) => l
+                .clone()
+                .tokens
+                .into_iter()
+                .filter_map(|s| match s {
+                    Literal(l) => Some(l.to_string()),
+                    _ => None,
+                })
+                .collect(),
+            _ => vec![],
         })
         .map(|att| att.replace("\"", "")) // caused by the to_string, probably a better way to do this
         .collect()
 }
 
 pub fn tokenstream_or_empty_if_no_retrieval_methods(stream: TokenStream2, exclusions: &[&str]) -> TokenStream2 {
-    tokenstream_or_empty_if_boolean_function(stream, &|| exclusions.contains(&GET_METHOD_NAME) && exclusions.contains(&BATCH_GET_METHOD_NAME) && exclusions.contains(&SCAN_METHOD_NAME))
+    tokenstream_or_empty_if_boolean_function(stream, &|| {
+        exclusions.contains(&GET_METHOD_NAME) && exclusions.contains(&BATCH_GET_METHOD_NAME) && exclusions.contains(&SCAN_METHOD_NAME)
+    })
 }
 
 pub fn tokenstream_or_empty_if_no_put_methods(stream: TokenStream2, exclusions: &[&str]) -> TokenStream2 {
-    tokenstream_or_empty_if_boolean_function(stream, &|| exclusions.contains(&PUT_METHOD_NAME) && exclusions.contains(&BATCH_PUT_METHOD_NAME))
+    tokenstream_or_empty_if_boolean_function(stream, &|| {
+        exclusions.contains(&PUT_METHOD_NAME) && exclusions.contains(&BATCH_PUT_METHOD_NAME)
+    })
 }
 
 pub fn tokenstream_or_empty_if_exclusion(stream: TokenStream2, method_name: &str, exclusions: &[&str]) -> TokenStream2 {
@@ -178,5 +183,3 @@ pub fn tokenstream_or_empty_if_boolean_function(stream: TokenStream2, fun: &dyn 
         stream
     }
 }
-
-

@@ -1,6 +1,6 @@
+use crate::{tokenstream_or_empty_if_no_retrieval_methods, BATCH_GET_METHOD_NAME, GET_METHOD_NAME, SCAN_METHOD_NAME};
 use proc_macro2::Ident;
 use quote::quote;
-use crate::{BATCH_GET_METHOD_NAME, GET_METHOD_NAME, SCAN_METHOD_NAME, tokenstream_or_empty_if_no_retrieval_methods};
 
 pub fn generate_error_names(helper_name: &Ident) -> (Ident, Ident, Ident, Ident, Ident) {
     let get_error = Ident::new(&format!("{helper_name}GetError"), helper_name.span());
@@ -16,10 +16,30 @@ pub fn generate_helper_error(struct_name: &Ident, exclusions: &[&str]) -> proc_m
     let (get_error, get_by_partition_error, batch_get_error, scan_error, parse_error) = generate_error_names(struct_name);
 
     let error_copies = [
-        (&get_error, Ident::new("get_item", struct_name.span()), Ident::new("GetItemError", struct_name.span()), GET_METHOD_NAME),
-        (&get_by_partition_error, Ident::new("query", struct_name.span()), Ident::new("QueryError", struct_name.span()), GET_METHOD_NAME),
-        (&batch_get_error, Ident::new("batch_get_item", struct_name.span()), Ident::new("BatchGetItemError", struct_name.span()), BATCH_GET_METHOD_NAME),
-        (&scan_error, Ident::new("scan", struct_name.span()), Ident::new("ScanError", struct_name.span()), SCAN_METHOD_NAME),
+        (
+            &get_error,
+            Ident::new("get_item", struct_name.span()),
+            Ident::new("GetItemError", struct_name.span()),
+            GET_METHOD_NAME,
+        ),
+        (
+            &get_by_partition_error,
+            Ident::new("query", struct_name.span()),
+            Ident::new("QueryError", struct_name.span()),
+            GET_METHOD_NAME,
+        ),
+        (
+            &batch_get_error,
+            Ident::new("batch_get_item", struct_name.span()),
+            Ident::new("BatchGetItemError", struct_name.span()),
+            BATCH_GET_METHOD_NAME,
+        ),
+        (
+            &scan_error,
+            Ident::new("scan", struct_name.span()),
+            Ident::new("ScanError", struct_name.span()),
+            SCAN_METHOD_NAME,
+        ),
     ];
 
     let impl_errors = error_copies
@@ -27,9 +47,7 @@ pub fn generate_helper_error(struct_name: &Ident, exclusions: &[&str]) -> proc_m
         .filter(|error_name| !exclusions.contains(&error_name.3))
         .map(|error_name| generate_impl_error(error_name.0, &error_name.1, &error_name.2, &parse_error));
 
-    let parse_error_stream = tokenstream_or_empty_if_no_retrieval_methods(
-        generate_parse_error(&parse_error), exclusions
-    );
+    let parse_error_stream = tokenstream_or_empty_if_no_retrieval_methods(generate_parse_error(&parse_error), exclusions);
 
     quote! {
         #parse_error_stream

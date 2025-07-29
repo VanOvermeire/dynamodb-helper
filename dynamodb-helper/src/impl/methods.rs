@@ -1,7 +1,7 @@
-use quote::quote;
+use crate::{dynamo_type, scalar_dynamo_type, DynamoScalarType, DynamoType};
 use proc_macro2::Ident;
-use syn::{Type};
-use crate::{dynamo_type, scalar_dynamo_type, DynamoType, DynamoScalarType};
+use quote::quote;
+use syn::Type;
 
 pub fn new_method(helper_ident: &Ident) -> proc_macro2::TokenStream {
     quote! {
@@ -39,7 +39,11 @@ pub fn put_method(struct_name: &Ident) -> proc_macro2::TokenStream {
     }
 }
 
-pub fn delete_method(struct_name: &Ident, partition_key_ident_and_type: (&Ident, &Type), range_key_ident_and_type: Option<(&Ident, &Type)>) -> proc_macro2::TokenStream {
+pub fn delete_method(
+    struct_name: &Ident,
+    partition_key_ident_and_type: (&Ident, &Type),
+    range_key_ident_and_type: Option<(&Ident, &Type)>,
+) -> proc_macro2::TokenStream {
     let partition_key_name = partition_key_ident_and_type.0.to_string();
     let partition_key_type = partition_key_ident_and_type.1;
     let partition_key_attribute_value = get_attribute_type_for_key(partition_key_type, Ident::new("partition", struct_name.span()));
@@ -72,7 +76,13 @@ pub fn delete_method(struct_name: &Ident, partition_key_ident_and_type: (&Ident,
     }
 }
 
-pub fn get_methods(struct_name: &Ident, get_error: &Ident, get_by_partition_error: &Ident, partition_key_ident_and_type: (&Ident, &Type), range_key_ident_and_type: Option<(&Ident, &Type)>) -> proc_macro2::TokenStream {
+pub fn get_methods(
+    struct_name: &Ident,
+    get_error: &Ident,
+    get_by_partition_error: &Ident,
+    partition_key_ident_and_type: (&Ident, &Type),
+    range_key_ident_and_type: Option<(&Ident, &Type)>,
+) -> proc_macro2::TokenStream {
     let partition_key_name = partition_key_ident_and_type.0.to_string();
     let partition_key_type = partition_key_ident_and_type.1;
     let partition_key_attribute_value = get_attribute_type_for_key(partition_key_type, Ident::new("partition", struct_name.span()));
@@ -114,7 +124,6 @@ pub fn get_methods(struct_name: &Ident, get_error: &Ident, get_by_partition_erro
             }
         }
     } else {
-
         quote! {
             pub async fn get(&self, partition: #partition_key_type) -> Result<Option<#struct_name>, #get_error> {
                 let result = self.client.get_item()
@@ -129,7 +138,12 @@ pub fn get_methods(struct_name: &Ident, get_error: &Ident, get_by_partition_erro
     }
 }
 
-pub fn batch_get(struct_name: &Ident, error: &Ident, partition_key_ident_and_type: (&Ident, &Type), range_key_ident_and_type: Option<(&Ident, &Type)>) -> proc_macro2::TokenStream {
+pub fn batch_get(
+    struct_name: &Ident,
+    error: &Ident,
+    partition_key_ident_and_type: (&Ident, &Type),
+    range_key_ident_and_type: Option<(&Ident, &Type)>,
+) -> proc_macro2::TokenStream {
     let partition_key_name = partition_key_ident_and_type.0.to_string();
     let partition_key_type = partition_key_ident_and_type.1;
     let partition_key_attribute_value = get_attribute_type_for_key(partition_key_type, Ident::new("partition", struct_name.span()));
@@ -260,7 +274,10 @@ pub fn scan_method(struct_name: &Ident, error: &Ident) -> proc_macro2::TokenStre
     }
 }
 
-pub fn create_table_method(partition_key_ident_and_type: (&Ident, &Type), range_key_ident_and_type: Option<(&Ident, &Type)>) -> proc_macro2::TokenStream {
+pub fn create_table_method(
+    partition_key_ident_and_type: (&Ident, &Type),
+    range_key_ident_and_type: Option<(&Ident, &Type)>,
+) -> proc_macro2::TokenStream {
     let partition_key_name = partition_key_ident_and_type.0.to_string();
     let partition_key_type = partition_key_ident_and_type.1;
     let partition_key_attribute_value = get_scalar_attribute(partition_key_type);

@@ -1,7 +1,7 @@
-use std::thread::sleep;
-use std::time::Duration;
 use aws_sdk_dynamodb::config::Region;
 use dynamodb_helper::DynamoDb;
+use std::thread::sleep;
+use std::time::Duration;
 
 #[derive(DynamoDb, Debug)]
 #[exclusion("batch_get")]
@@ -17,7 +17,7 @@ async fn main() {
     // unlike the tests, this example uses real DynamoDB - so you'll need credentials if you want this to work //
     println!("Setting up our client");
     let client = ExampleStructDb::build(Region::new("eu-west-1"), "dynamoDbHelperExampleTable").await;
-    
+
     println!("Creating table");
     client.create_table().await.expect("Create table to work");
     println!("Waiting a bit until table is available");
@@ -43,8 +43,8 @@ async fn main() {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
     use super::*;
+    use std::collections::HashMap;
 
     #[derive(DynamoDb)]
     #[exclusion("new", "get", "batch_get", "put", "batch_put", "delete", "scan", "create_table", "delete_table")]
@@ -84,7 +84,7 @@ mod tests {
             optional_string: None,
             optional_number: None,
             optional_number_list: None,
-            optional_number_map: None
+            optional_number_map: None,
         };
         let _help = ExampleTestStructDb::build(Region::new("eu-west-1"), "exampleTable").await;
     }

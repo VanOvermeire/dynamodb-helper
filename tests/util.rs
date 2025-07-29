@@ -1,9 +1,9 @@
-use std::collections::HashMap;
-use aws_sdk_dynamodb::Client;
 use aws_sdk_dynamodb::config::{Credentials, Region};
 use aws_sdk_dynamodb::operation::get_item::GetItemOutput;
 use aws_sdk_dynamodb::types::{AttributeDefinition, AttributeValue, BillingMode, KeySchemaElement, KeyType, ScalarAttributeType};
+use aws_sdk_dynamodb::Client;
 use dynamodb_helper::DynamoDb;
+use std::collections::HashMap;
 
 #[derive(DynamoDb, Debug, Clone)]
 pub struct OrderStruct {
@@ -35,7 +35,7 @@ pub fn create_order_struct() -> OrderStruct {
         total_amount: 6.0,
         a_boolean: false,
         numbers: vec![1, 2],
-        something_optional: Some("something".to_string())
+        something_optional: Some("something".to_string()),
     }
 }
 
@@ -53,13 +53,7 @@ pub fn create_order_struct_with_range() -> OrderStructWithRange {
 pub async fn create_client() -> Client {
     let config = aws_config::from_env()
         .region(Region::new("eu-central-1"))
-        .credentials_provider(Credentials::new(
-            "accesskey",
-            "privatekey",
-            None,
-            None,
-            "dummy",
-        ))
+        .credentials_provider(Credentials::new("accesskey", "privatekey", None, None, "dummy"))
         .load()
         .await;
 
@@ -86,13 +80,11 @@ pub async fn init_table(client: &Client, table_name: &str, partition_key: &str, 
                 .unwrap(),
         ]
     } else {
-        vec![
-            AttributeDefinition::builder()
-                .attribute_name(partition_key)
-                .attribute_type(ScalarAttributeType::S)
-                .build()
-                .unwrap()
-        ]
+        vec![AttributeDefinition::builder()
+            .attribute_name(partition_key)
+            .attribute_type(ScalarAttributeType::S)
+            .build()
+            .unwrap()]
     };
 
     let keys = if let Some(range_key) = range_key_option {
@@ -109,16 +101,15 @@ pub async fn init_table(client: &Client, table_name: &str, partition_key: &str, 
                 .unwrap(),
         ]
     } else {
-        vec![
-            KeySchemaElement::builder()
-                .key_type(KeyType::Hash)
-                .attribute_name(partition_key)
-                .build()
-                .unwrap(),
-        ]
+        vec![KeySchemaElement::builder()
+            .key_type(KeyType::Hash)
+            .attribute_name(partition_key)
+            .build()
+            .unwrap()]
     };
 
-    client.create_table()
+    client
+        .create_table()
         .table_name(table_name)
         .set_key_schema(Some(keys))
         .set_attribute_definitions(Some(ads))
@@ -129,7 +120,8 @@ pub async fn init_table(client: &Client, table_name: &str, partition_key: &str, 
 }
 
 pub async fn destroy_table(client: &Client, table_name: &str) {
-    client.delete_table()
+    client
+        .delete_table()
         .table_name(table_name)
         .send()
         .await
@@ -142,10 +134,16 @@ pub async fn put_order_struct(table: &str, client: &Client, struc: &OrderStruct)
         ("name".to_string(), AttributeValue::S(struc.name.to_string())),
         ("total_amount".to_string(), AttributeValue::N(struc.total_amount.to_string())),
         ("a_boolean".to_string(), AttributeValue::Bool(struc.a_boolean)),
-        ("numbers".to_string(), AttributeValue::L(struc.numbers.iter().map(|v| AttributeValue::N(v.to_string())).collect())),
+        (
+            "numbers".to_string(),
+            AttributeValue::L(struc.numbers.iter().map(|v| AttributeValue::N(v.to_string())).collect()),
+        ),
     ]);
     if struc.something_optional.is_some() {
-        basic_map.insert("something_optional".to_string(), AttributeValue::S(struc.something_optional.as_ref().unwrap().to_string()));
+        basic_map.insert(
+            "something_optional".to_string(),
+            AttributeValue::S(struc.something_optional.as_ref().unwrap().to_string()),
+        );
     };
     put_hashmap(table, client, basic_map).await;
 }
@@ -156,14 +154,27 @@ pub async fn put_order_with_range_struct(table: &str, client: &Client, example: 
         ("a_range".to_string(), AttributeValue::N(example.a_range.to_string())),
         ("name".to_string(), AttributeValue::S(example.name.to_string())),
         ("total_amount".to_string(), AttributeValue::N(example.total_amount.to_string())),
-        ("names".to_string(), AttributeValue::L(example.names.iter().map(|v| v.clone()).map(|v| AttributeValue::S(v)).collect())),
-        ("map_values".to_string(), AttributeValue::M(example.map_values.iter().map(|v| (v.0.clone(), AttributeValue::S(v.1.clone()))).collect())),
+        (
+            "names".to_string(),
+            AttributeValue::L(example.names.iter().map(|v| v.clone()).map(|v| AttributeValue::S(v)).collect()),
+        ),
+        (
+            "map_values".to_string(),
+            AttributeValue::M(
+                example
+                    .map_values
+                    .iter()
+                    .map(|v| (v.0.clone(), AttributeValue::S(v.1.clone())))
+                    .collect(),
+            ),
+        ),
     ]);
     put_hashmap(table, client, map).await;
 }
 
 pub async fn put_hashmap(table: &str, client: &Client, map: HashMap<String, AttributeValue>) {
-    client.put_item()
+    client
+        .put_item()
         .table_name(table)
         .set_item(Some(map))
         .send()
@@ -172,7 +183,8 @@ pub async fn put_hashmap(table: &str, client: &Client, map: HashMap<String, Attr
 }
 
 pub async fn get_order_struct(table: &str, client: &Client, id: &str) -> GetItemOutput {
-    client.get_item()
+    client
+        .get_item()
         .table_name(table)
         .key("an_id".to_string(), AttributeValue::S(id.to_string()))
         .send()
@@ -181,7 +193,8 @@ pub async fn get_order_struct(table: &str, client: &Client, id: &str) -> GetItem
 }
 
 pub async fn get_order_struct_with_range(table: &str, client: &Client, id: &str, range: &i32) -> GetItemOutput {
-    client.get_item()
+    client
+        .get_item()
         .table_name(table)
         .key("an_id".to_string(), AttributeValue::S(id.to_string()))
         .key("a_range".to_string(), AttributeValue::N(range.to_string()))

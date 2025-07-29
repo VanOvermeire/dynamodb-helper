@@ -12,9 +12,7 @@ async fn should_be_able_to_put() {
 
     let db = OrderStructDb::new(client_for_struct, put_table);
 
-    db.put(example.clone())
-        .await
-        .expect("Put to work");
+    db.put(example.clone()).await.expect("Put to work");
 
     let result = get_order_struct(put_table, &client, example.an_id.as_str()).await;
 
@@ -34,9 +32,7 @@ async fn should_be_able_to_put_with_range_key() {
 
     let db = OrderStructWithRangeDb::new(client_for_struct, put_table);
 
-    db.put(example.clone())
-        .await
-        .expect("Put to work");
+    db.put(example.clone()).await.expect("Put to work");
 
     let result = get_order_struct_with_range(put_table, &client, example.an_id.as_str(), &example.a_range).await;
 
@@ -61,16 +57,17 @@ async fn should_be_able_to_update() {
     let mut updated = example.clone();
     updated.name = "Another name".to_string();
 
-    db.put(updated)
-        .await
-        .expect("Put to work");
+    db.put(updated).await.expect("Put to work");
 
     let result = get_order_struct(put_table, &client, example.an_id.as_str()).await;
 
     destroy_table(&client, put_table).await;
 
     assert!(result.item().is_some());
-    assert_eq!(result.item().unwrap().get("name").unwrap().as_s().unwrap(), &"Another name".to_string());
+    assert_eq!(
+        result.item().unwrap().get("name").unwrap().as_s().unwrap(),
+        &"Another name".to_string()
+    );
 }
 
 #[tokio::test]
@@ -84,9 +81,7 @@ async fn should_be_able_to_batch_put() {
 
     init_table(&client, put_table, "an_id", None).await;
 
-    db.batch_put(vec![example.clone()])
-        .await
-        .expect("Batch put to work");
+    db.batch_put(vec![example.clone()]).await.expect("Batch put to work");
 
     let result = get_order_struct(put_table, &client, example.an_id.as_str()).await;
 
@@ -106,7 +101,7 @@ async fn should_be_able_to_batch_put_with_range() {
         name: "Me".to_string(),
         total_amount: 6,
         names: vec!["one".to_string()],
-        map_values: Default::default()
+        map_values: Default::default(),
     };
     let second_example = OrderStructWithRange {
         an_id: "uid123".to_string(),
@@ -114,7 +109,7 @@ async fn should_be_able_to_batch_put_with_range() {
         name: "You".to_string(),
         total_amount: 7,
         names: vec!["two".to_string()],
-        map_values: Default::default()
+        map_values: Default::default(),
     };
 
     init_table(&client, put_table, "an_id", Some("a_range")).await;

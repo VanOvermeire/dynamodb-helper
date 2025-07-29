@@ -15,7 +15,8 @@ async fn should_be_able_to_create_a_table() {
 
     db.create_table().await.expect("Create table to work");
 
-    let result = client.describe_table()
+    let result = client
+        .describe_table()
         .table_name(create_table)
         .send()
         .await
@@ -58,9 +59,12 @@ async fn should_be_able_to_create_provisioned_table() {
 
     let db = OrderStructWithRangeDb::new(client_for_struct, create_table);
 
-    db.create_table_with_provisioned_throughput(5, 7).await.expect("Create table to work");
+    db.create_table_with_provisioned_throughput(5, 7)
+        .await
+        .expect("Create table to work");
 
-    let result = client.describe_table()
+    let result = client
+        .describe_table()
         .table_name(create_table)
         .send()
         .await
@@ -92,10 +96,7 @@ async fn should_be_able_to_delete_a_table() {
 
     db.delete_table().await.expect("Delete table to work");
 
-    let results = client.list_tables()
-        .send()
-        .await
-        .expect("To be able to list table");
+    let results = client.list_tables().send().await.expect("To be able to list table");
 
     let filtered = results.table_names.filter(|t| t.iter().any(|tab| tab == &delete_table.to_string()));
 
@@ -118,5 +119,3 @@ async fn should_returning_error_result_when_deleting_twice() {
 
     assert!(result.is_err());
 }
-
-

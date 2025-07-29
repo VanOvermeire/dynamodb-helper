@@ -1,11 +1,11 @@
-mod util;
+mod constants;
+mod errors;
 mod methods;
 mod traits;
-mod errors;
-mod constants;
+mod util;
 
-pub use util::*;
 pub use constants::*;
+pub use errors::*;
 pub use methods::*;
 pub use traits::*;
-pub use errors::*;
+pub use util::*;
