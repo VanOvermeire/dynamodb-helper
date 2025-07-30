@@ -33,7 +33,6 @@ Which I'll get to if anyone needs them.
 - handle pagination for query and batch
 - support more types of lists and maps
 - allow changing names as they are saved in DynamoDB
-- macro error handling with `syn::Error` or `proc_macro_error`
 
 ### Improvements
 
