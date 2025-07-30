@@ -1,10 +1,12 @@
-use crate::{get_relevant_field_info, possibly_optional_dynamo_type, DynamoType, IterableDynamoType};
+use crate::{get_relevant_field_info, IterableDynamoType};
 use proc_macro2::Ident;
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::punctuated::Punctuated;
 use syn::token::Comma;
 use syn::{Error, Field};
+use crate::implementation::dynamo_types::DynamoType;
+use crate::implementation::PossiblyOptionalDynamoType;
 
 pub fn try_from_hashmap_to_struct(struct_name: &Ident, error: &Ident, fields: &Punctuated<Field, Comma>) -> TokenStream {
     let struct_inserts = fields.iter().map(|f| try_from_hashmap_for_individual_field(f, error));
@@ -35,8 +37,15 @@ pub fn try_from_hashmap_to_struct(struct_name: &Ident, error: &Ident, fields: &P
 fn try_from_hashmap_for_individual_field(f: &Field, err: &Ident) -> TokenStream {
     let (name, name_as_string, field_type) = get_relevant_field_info(f);
 
-    match possibly_optional_dynamo_type(field_type) {
-        crate::PossiblyOptionalDynamoType::Optional(v) => match v {
+    let possibly_optional_dynamo_type = match PossiblyOptionalDynamoType::try_from(field_type) {
+        Ok(v) => v,
+        Err(e) => {
+            return e.into_compile_error().into();
+        }
+    };
+
+    match possibly_optional_dynamo_type {
+        PossiblyOptionalDynamoType::Optional(v) => match v {
             IterableDynamoType::Simple(simp) => match simp {
                 DynamoType::String => {
                     quote!(#name: map.get(#name_as_string).map(|v| v.as_s().map_err(|_| #err::new(format!("Could not convert {} from Dynamo String", #name_as_string))).map(|v| v.to_string())).transpose()?,)
@@ -69,7 +78,7 @@ fn try_from_hashmap_for_individual_field(f: &Field, err: &Ident) -> TokenStream 
                 }
             }
         },
-        crate::PossiblyOptionalDynamoType::Normal(v) => match v {
+        PossiblyOptionalDynamoType::Normal(v) => match v {
             IterableDynamoType::Simple(simp) => match simp {
                 DynamoType::String => {
                     quote!(#name: map.get(#name_as_string).ok_or_else(|| #err::new(format!("Did not find required attribute {}", #name_as_string)))?.as_s().map_err(|_| #err::new(format!("Could not convert {} from Dynamo String", #name_as_string))).map(|v| str::parse(v))??,)
@@ -136,8 +145,15 @@ pub fn from_struct_for_hashmap(struct_name: &Ident, fields: &Punctuated<Field, C
     let hashmap_inserts = fields.iter().map(|f| {
         let (name, name_as_string, field_type) = get_relevant_field_info(f);
 
-        match possibly_optional_dynamo_type(field_type) {
-            crate::PossiblyOptionalDynamoType::Optional(v) => {
+        let possibly_optional_dynamo_type = match PossiblyOptionalDynamoType::try_from(field_type) {
+            Ok(v) => v,
+            Err(e) => {
+                return e.into_compile_error().into();
+            }
+        };
+
+        match possibly_optional_dynamo_type {
+            PossiblyOptionalDynamoType::Optional(v) => {
                 let map_insert = match map_insert_for(v, name_as_string) {
                     Ok(v) => v,
                     Err(message) => return Error::new(name.span(), message).into_compile_error().into(),
@@ -149,7 +165,7 @@ pub fn from_struct_for_hashmap(struct_name: &Ident, fields: &Punctuated<Field, C
                     }
                 }
             }
-            crate::PossiblyOptionalDynamoType::Normal(v) => {
+            PossiblyOptionalDynamoType::Normal(v) => {
                 let map_insert = match map_insert_for(v, name_as_string) {
                     Ok(v) => v,
                     Err(message) => return Error::new(name.span(), message).into_compile_error().into(),

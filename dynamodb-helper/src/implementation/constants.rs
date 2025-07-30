@@ -13,3 +13,5 @@ pub const SCAN_METHOD_NAME: &str = "scan";
 pub const EXCLUSION_ATTRIBUTE_NAME: &str = "exclusion";
 pub const PARTITION_KEY_ATTRIBUTE_NAME: &str = "partition";
 pub const RANGE_KEY_ATTRIBUTE_NAME: &str = "range";
+
+pub const ALL_NUMERIC_TYPES_AS_STRINGS: &[&str] = &["u8", "u16", "u32", "u64", "u128", "i8", "i16", "i32", "i64", "i128", "f32", "f64"];

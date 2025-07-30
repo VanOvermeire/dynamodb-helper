@@ -72,7 +72,7 @@ pub fn create_dynamodb_helper(item: TokenStream) -> TokenStream {
         }
     };
 
-    match dynamo_type(partition_key_ident_and_type.1) {
+    match DynamoType::from(partition_key_ident_and_type.1) {
         None => {
             return Error::new(
                 partition_key_ident_and_type.0.span(),

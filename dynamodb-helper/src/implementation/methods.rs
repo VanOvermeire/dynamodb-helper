@@ -1,7 +1,8 @@
-use crate::{dynamo_type, DynamoType};
 use proc_macro2::Ident;
 use quote::quote;
-use syn::Type;
+use syn::{Error, Type};
+use syn::spanned::Spanned;
+use crate::implementation::dynamo_types::DynamoType;
 
 pub fn new_method(helper_ident: &Ident) -> proc_macro2::TokenStream {
     quote! {
@@ -390,41 +391,16 @@ pub fn delete_table_method() -> proc_macro2::TokenStream {
 }
 
 fn get_attribute_type_for_key(key_type: &Type, name_of_attribute: Ident) -> proc_macro2::TokenStream {
-    match dynamo_type(key_type).expect("Did not find a valid DynamoDB type") {
-        DynamoType::String => {
-            quote! {
-                aws_sdk_dynamodb::types::AttributeValue::S(#name_of_attribute)
-            }
-        }
-        DynamoType::Number => {
-            quote! {
-                aws_sdk_dynamodb::types::AttributeValue::N(#name_of_attribute.to_string())
-            }
-        }
-        DynamoType::Boolean => {
-            quote! {
-                aws_sdk_dynamodb::types::AttributeValue::Bool(#name_of_attribute)
-            }
-        }
+    match DynamoType::from(key_type) {
+        Some(dynamo_type) => dynamo_type.attribute_type_value(name_of_attribute),
+        None => Error::new(key_type.span(), "Did not find a valid DynamoDB key type".to_string()).into_compile_error().into()
     }
+
 }
 
 fn get_scalar_attribute(key_type: &Type) -> proc_macro2::TokenStream {
-    match dynamo_type(key_type).expect("Did not find a valid DynamoDB type") {
-        DynamoType::String => {
-            quote! {
-                aws_sdk_dynamodb::types::ScalarAttributeType::S
-            }
-        }
-        DynamoType::Number => {
-            quote! {
-                aws_sdk_dynamodb::types::ScalarAttributeType::N
-            }
-        }
-        DynamoType::Boolean => {
-            quote! {
-                aws_sdk_dynamodb::types::ScalarAttributeType::B
-            }
-        }
+    match DynamoType::from(key_type) {
+        Some(dynamo_type) => dynamo_type.scalar_attribute_type(),
+        None => Error::new(key_type.span(), "Did not find a valid DynamoDB scalar type".to_string()).into_compile_error().into()
     }
 }
